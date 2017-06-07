@@ -1,6 +1,6 @@
 /* vi: set ts=2 shiftwidth=2 expandtab: 
  *
- * Copyright (C) 2002-2006  Simon Baldwin, simon_baldwin@yahoo.com
+ * Copyright (C) 2002-2011  Simon Baldwin, simon_baldwin@yahoo.com
  * Mac portions Copyright (C) 2002  Ben Hines
  *
  * This program is free software; you can redistribute it and/or modify
@@ -14,7 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  
  * USA 
  */
 
@@ -75,7 +75,7 @@ static const char GLN_FILE_DELIM = '/';
 /*---------------------------------------------------------------------*/
 
 /* Glk Level 9 port version number. */
-static const glui32 GLN_PORT_VERSION = 0x00020200;
+static const glui32 GLN_PORT_VERSION = 0x00020201;
 
 /*
  * We use a maximum of three Glk windows, one for status, one for pictures,
@@ -1237,7 +1237,7 @@ gln_gameid_identify_game (void)
   gln_patch_tableref_t patch;
 
   /* If the data file appears too short for a header, give up now. */
-  if (FileSize < 24)
+  if (FileSize < 30)
     return NULL;
 
   /*
@@ -1397,7 +1397,7 @@ static const int GLN_GRAPHICS_REPAINT_WAIT = 10;
 static const int GLN_GRAPHICS_PIXEL = 1;
 
 /* Proportion of the display to use for graphics. */
-static const glui32 GLN_GRAPHICS_PROPORTION = 40;
+static const glui32 GLN_GRAPHICS_PROPORTION = 30;
 
 /*
  * Special title picture number, requiring its own handling, and count of
@@ -1415,7 +1415,7 @@ static const int GLN_GRAPHICS_TITLE_PICTURE = 0,
 static const glui32 GLN_GRAPHICS_DEFAULT_BACKGROUND = 0x00ffffff,
                     GLN_GRAPHICS_BORDER_COLOR = 0x00000000;
 static const int GLN_GRAPHICS_BORDER = 1,
-                 GLN_GRAPHICS_SHADING = 0,
+                 GLN_GRAPHICS_SHADING = 2,
                  GLN_GRAPHICS_SHADE_STEPS = 8;
 
 /*
@@ -1709,7 +1709,7 @@ gln_graphics_clear_and_border (winid_t glk_window,
    */
   glk_window_set_background_color (glk_window, background);
   glk_window_clear (glk_window);
-
+#if !(defined(GARGLK) || defined(SPATTERLIGHT))
   /*
    * For very small pictures, just border them, but don't try and
    * do any shading.  Failing this check is probably highly unlikely.
@@ -1726,7 +1726,7 @@ gln_graphics_clear_and_border (winid_t glk_window,
                             height * pixel_size + GLN_GRAPHICS_BORDER * 2);
       return;
     }
-
+#endif
   /*
    * Paint a rectangle bigger than the picture by border pixels all round,
    * and with additional shading pixels right and below.  Some of these
@@ -1748,8 +1748,6 @@ gln_graphics_clear_and_border (winid_t glk_window,
    */
   gln_graphics_split_color (background, &rgb_background);
   gln_graphics_split_color (GLN_GRAPHICS_BORDER_COLOR, &rgb_border);
-
-#if 0 /* spatterlight don't like these flashy gradients */
 
   /*
    * Generate the incremental color to use in fade steps.  Here we're
@@ -1785,7 +1783,6 @@ gln_graphics_clear_and_border (winid_t glk_window,
       /* Update the shading color for the fade next iteration. */
       shading_color -= fade_color;
     }
-#endif /* spatterlight don't like these flashy gradients */
 }
 
 
@@ -2150,6 +2147,29 @@ break_y_max:
     }
 }
 
+static void
+gln_graphics_paint_everything (winid_t glk_window,
+			glui32 palette[],
+			gln_byte off_screen[],
+			int x_offset, int y_offset,
+			gln_uint16 width, gln_uint16 height)
+{
+	gln_byte		pixel;			/* Reference pixel color */
+	int		x, y;
+
+	for (y = 0; y < height; y++)
+	{
+	    for (x = 0; x < width; x ++)
+	    {
+		pixel = off_screen[ y * width + x ];
+		glk_window_fill_rect (glk_window,
+			palette[ pixel ],
+			x * GLN_GRAPHICS_PIXEL + x_offset,
+			y * GLN_GRAPHICS_PIXEL + y_offset,
+			GLN_GRAPHICS_PIXEL, GLN_GRAPHICS_PIXEL);
+	    }
+	}
+}
 
 /*
  * gln_graphics_timeout()
@@ -2299,9 +2319,11 @@ gln_graphics_timeout (void)
        * a count of pixels in each layer, useful for knowing when to stop
        * scanning for layers in the rendering loop.
        */
+#ifndef GARGLK
       gln_graphics_assign_layers (off_screen, on_screen,
                                   gln_graphics_width, gln_graphics_height,
                                   layers, layer_usage);
+#endif
 
       /* Clear the graphics window. */
       gln_graphics_clear_and_border (gln_graphics_window,
@@ -2321,6 +2343,7 @@ gln_graphics_timeout (void)
       deferred_repaint = FALSE;
     }
 
+#ifndef GARGLK
   /*
    * Make a portion of an image pass, from lower to higher image layers,
    * scanning for invalidated pixels that are in the current image layer we
@@ -2416,10 +2439,18 @@ gln_graphics_timeout (void)
   assert (regions < GLN_REPAINT_LIMIT);
   total_regions += regions;
 
+#else
+  gln_graphics_paint_everything
+      (gln_graphics_window,
+       palette, off_screen,
+       x_offset, y_offset,
+       gln_graphics_width,
+       gln_graphics_height);
+#endif
+
   /* Stop graphics; there's no more to be done until something restarts us. */
   gln_graphics_stop ();
 }
-
 
 /*
  * gln_graphics_locate_bitmaps()
@@ -3534,10 +3565,10 @@ gln_watchdog_has_timed_out (void)
           /* Reset the monitor and drop into FALSE return -- stop rejected. */
           gln_watchdog_tick ();
         }
-   }
+    }
 
-   /* No timeout indicated, or offer rejected by the user. */
-   return FALSE;
+  /* No timeout indicated, or offer rejected by the user. */
+  return FALSE;
 }
 
 
@@ -3577,7 +3608,7 @@ gln_status_update (void)
        */
       game_name = gln_gameid_get_game_name ();
       glk_put_string (game_name ? (char *) game_name
-                                : "Glk Level 9 version 4.1");
+                                : "Glk Level 9 version 5.1");
 
       glk_set_window (gln_main_window);
     }
@@ -3618,8 +3649,10 @@ gln_status_print (void)
         {
           int index;
 
+#if !(defined(GARGLK) || defined(SPATTERLIGHT))
           /* Set fixed width font to try to preserve status line formatting. */
           glk_set_style (style_Preformatted);
+#endif
 
           /* Bracket, and output the extracted game name. */
           glk_put_string ("[ ");
@@ -4605,7 +4638,9 @@ gln_command_print_version_number (glui32 version)
   char buffer[64];
 
   sprintf (buffer, "%lu.%lu.%lu",
-           version >> 16, (version >> 8) & 0xff, version & 0xff);
+          (unsigned long) version >> 16,
+          (unsigned long) (version >> 8) & 0xff,
+          (unsigned long) version & 0xff);
   gln_normal_string (buffer);
 }
 
@@ -4693,8 +4728,8 @@ gln_command_license (const char *argument)
 
   gln_normal_string ("You should have received a copy of the GNU General"
                       " Public License along with this program; if not, write"
-                      " to the Free Software Foundation, Inc., 59 Temple"
-                      " Place, Suite 330, Boston, MA  02111-1307 USA\n\n");
+                      " to the Free Software Foundation, Inc., 51 Franklin"
+                      " Street, Fifth Floor, Boston, MA 02110-1301 USA\n\n");
 
   gln_normal_string ("Please report any bugs, omissions, or misfeatures to ");
   gln_standout_string ("simon_baldwin@yahoo.com");
@@ -5252,11 +5287,13 @@ gln_expand_abbreviations (char *buffer, int size)
       memmove (command + strlen (expansion) - 1, command, strlen (command) + 1);
       memcpy (command, expansion, strlen (expansion));
 
+#if !(defined(GARGLK) || defined(SPATTERLIGHT))
       gln_standout_string ("[");
       gln_standout_char (abbreviation);
       gln_standout_string (" -> ");
       gln_standout_string (expansion);
       gln_standout_string ("]\n");
+#endif
     }
 }
 
@@ -6068,6 +6105,18 @@ os_set_filenumber (char *newname, int size, int file_number)
 }
 
 
+/*
+ * os_open_script_file()
+ *
+ * Handles player calls to the "#play" meta-command.  Because we have our
+ * own way of handling scripts, this function is a stub.
+ */
+FILE *
+os_open_script_file (void) {
+  return NULL;
+}
+
+
 /*---------------------------------------------------------------------*/
 /*  Functions intercepted by link-time wrappers                        */
 /*---------------------------------------------------------------------*/
@@ -6144,7 +6193,7 @@ static void
 gln_establish_picture_filename (char *name, char **graphics)
 {
   char *base, *directory_end, *graphics_file;
-  FILE *stream;
+  FILE *stream = NULL;
   assert (name && graphics);
 
   /* Take a destroyable copy of the input filename. */
@@ -6152,35 +6201,66 @@ gln_establish_picture_filename (char *name, char **graphics)
   strcpy (base, name);
 
   /* If base has an extension .LEV, .SNA, or similar, remove it. */
-  if (strlen (base) > strlen (".XXX"))
+  if (strrchr (base, '.'))
     {
-      if (base[strlen (base) - strlen (".XXX")] == '.')
-        base[strlen (base) - strlen (".XXX")] = '\0';
+      base[strlen (base) - strlen (strrchr (base, '.'))] = '\0';
     }
 
   /* Allocate space for the return graphics file. */
-  graphics_file = gln_malloc (strlen (base) + strlen (".PIC") + 1);
+  graphics_file = gln_malloc (strlen (base) + strlen (".___") + 1);
 
   /* Form a candidate graphics file, using a .PIC extension. */
-  strcpy (graphics_file, base);
-  strcat (graphics_file, ".PIC");
-  stream = fopen (graphics_file, "rb");
   if (!stream)
     {
-      /* Retry, using a .pic extension instead. */
+      strcpy (graphics_file, base);
+      strcat (graphics_file, ".PIC");
+      stream = fopen (graphics_file, "rb");
+    }
+
+  if (!stream)
+    {
       strcpy (graphics_file, base);
       strcat (graphics_file, ".pic");
       stream = fopen (graphics_file, "rb");
-      if (!stream)
-        {
-          /*
-           * No access to this graphics file.  In this case, free memory
-           * and reset graphics file to NULL.
-           */
-          free (graphics_file);
-          graphics_file = NULL;
-        }
     }
+
+  /* Form a candidate graphics file, using a .CGA extension. */
+  if (!stream)
+    {
+      strcpy (graphics_file, base);
+      strcat (graphics_file, ".CGA");
+      stream = fopen (graphics_file, "rb");
+    }
+
+  if (!stream)
+    {
+      strcpy (graphics_file, base);
+      strcat (graphics_file, ".cga");
+      stream = fopen (graphics_file, "rb");
+    }
+
+  /* Form a candidate graphics file, using a .HRC extension. */
+  if (!stream)
+    {
+      strcpy (graphics_file, base);
+      strcat (graphics_file, ".HRC");
+      stream = fopen (graphics_file, "rb");
+    }
+
+  if (!stream)
+    {
+      strcpy (graphics_file, base);
+      strcat (graphics_file, ".hrc");
+      stream = fopen (graphics_file, "rb");
+    }
+
+  /* No access to graphics file. */
+  if (!stream)
+    {
+      free (graphics_file);
+      graphics_file = NULL;
+    }
+
   if (stream)
     fclose (stream);
 
@@ -6294,6 +6374,15 @@ gln_startup_code (int argc, char *argv[])
     {
       gln_gamefile = argv[argv_index];
       gln_game_message = NULL;
+#ifdef GARGLK
+    {
+      char *s;
+      s = strrchr(gln_gamefile, '\\');
+      if (s) garglk_set_story_name(s+1);
+      s = strrchr(gln_gamefile, '/');
+      if (s) garglk_set_story_name(s+1);
+    }
+#endif
     }
   else
     {
@@ -6371,9 +6460,11 @@ gln_main (void)
     gln_graphics_locate_bitmaps (gln_gamefile);
 
   /* Try to create a one-line status window.  We can live without it. */
+/*
   gln_status_window = glk_window_open (gln_main_window,
                                        winmethod_Above | winmethod_Fixed,
                                        1, wintype_TextGrid, 0);
+*/
 
   /*
    * The main interpreter uses rand(), but never seeds the random number
@@ -6422,7 +6513,7 @@ gln_main (void)
         }
 
       /* Print out a short banner. */
-      gln_header_string ("\nLevel 9 Interpreter, version 4.1\n");
+      gln_header_string ("\nLevel 9 Interpreter, version 5.1\n");
       gln_banner_string ("Written by Glen Summers and David Kinder\n"
                          "Glk interface by Simon Baldwin\n\n");
 
@@ -6547,7 +6638,7 @@ glk_main (void)
 /*---------------------------------------------------------------------*/
 /*  Glk linkage relevant only to the UNIX platform                     */
 /*---------------------------------------------------------------------*/
-#if 1 // def __unix
+#ifdef TRUE
 
 #include "glkstart.h"
 
@@ -6586,6 +6677,14 @@ glkunix_startup_code (glkunix_startup_t * data)
 {
   assert (!gln_startup_called);
   gln_startup_called = TRUE;
+
+#ifdef GARGLK
+  garglk_set_program_name("Level 9 5.1");
+  garglk_set_program_info(
+      "Level 9 5.1 by Glen Summers, David Kinder\n"
+      "Alan Staniforth, Simon Baldwin and Dieter Baron\n"
+      "Glk Graphics support by Tor Andersson\n");
+#endif
 
   return gln_startup_code (data->argc, data->argv);
 }

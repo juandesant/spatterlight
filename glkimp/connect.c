@@ -21,6 +21,9 @@ int bufferwin = -1;
 int bufferatt = -1;
 int bufferlen = 0;
 
+int gli_utf8output = TRUE;
+int gli_utf8input = TRUE;
+
 int gli_enable_graphics = 0;
 int gli_enable_sound = 0;
 
@@ -35,7 +38,7 @@ float gcellh = 12;
 
 void sendmsg(int cmd, int a1, int a2, int a3, int a4, int a5, int len, char *buf)
 {
-    int n;
+    ssize_t n;
     struct message msgbuf;
     
     msgbuf.cmd = cmd;
@@ -69,7 +72,7 @@ void sendmsg(int cmd, int a1, int a2, int a3, int a4, int a5, int len, char *buf
 
 void readmsg(struct message *msgbuf, char *buf)
 {
-    int n;
+    ssize_t n;
     
     n = read(readfd, msgbuf, sizeof (struct message));
     if (msgbuf->cmd == ERROR || n != sizeof (struct message))
@@ -102,6 +105,8 @@ void win_hello(void)
     
     gli_enable_graphics = wmsg.a1;
     gli_enable_sound = wmsg.a2;
+    
+    event.type = 0;
     
     // get first event, which should always be Arrange
     win_select(&event, 1);
@@ -161,6 +166,27 @@ void win_print(int name, int ch, int at)
     
     pbuf[bufferlen++] = ch;
 }
+
+/* Gargoyle glue */
+
+void wintitle(void)
+{
+    char buf[256];
+    
+    if (strlen(gli_story_title))
+        sprintf(buf, "%s", gli_story_title);
+    else if (strlen(gli_story_name))
+        sprintf(buf, "%s - %s", gli_story_name, gli_program_name);
+    else
+        sprintf(buf, "%s", gli_program_name);
+    if (strlen(buf))
+        sendmsg(SETTITLE, 0, 0, 0, 0, 0,
+            (int)(strlen(buf)), // * sizeof(unsigned short)
+            (char*)buf);
+    fprintf(stderr, "Sent change title request: length %d, title %s (Latin-1, not Unicode)\n", (int)(strlen(buf)), (char*)buf);
+}
+
+/* End of Gargoyle glue */
 
 void win_fillrect(int name, glui32 color, int x, int y, int w, int h)
 {
@@ -273,6 +299,12 @@ void win_cancelline(int name, int cap, int *len, char *buf)
     sendmsg(CANCELLINE, name, cap, 0, 0, 0, 0, NULL);
     readmsg(&wmsg, buf);
     *len = wmsg.len;
+}
+
+void win_set_echo(int name, int val)
+{
+    win_flush();
+    sendmsg(SETECHO, name, val, 0, 0, 0, 0, NULL);
 }
 
 void win_initmouse(int name)
@@ -396,12 +428,26 @@ void win_clearhint(int wintype, int styl, int hint)
 {
     win_flush();
     sendmsg(CLEARHINT, wintype, styl, hint, 0, 0, 0, NULL);
+    fprintf(stderr, "sent CLEARHINT type:%d styl:%d hint:%d\n",wintype, styl, hint);
+
 }
 
-void win_setbgnd(int name, int color)
+int win_style_measure(int name, int styl, int hint, glui32 *result)
 {
     win_flush();
-    sendmsg(SETBGND, name, color, 0, 0, 0, 0, NULL);
+    sendmsg(STYLEMEASURE, name, styl, hint, 0, 0, 0, NULL);
+
+    fprintf(stderr, "sent STYLEMEASURE name:%d styl:%d hint:%d\n",name, styl, hint);
+
+    readmsg(&wmsg, wbuf);
+    *result = wmsg.a2;
+    return wmsg.a1;  /* TRUE or FALSE */
+}
+
+void win_setbgnd(int name, glui32 color)
+{
+    win_flush();
+    sendmsg(SETBGND, name, (int)color, 0, 0, 0, 0, NULL);
 }
 
 void win_select(event_t *event, int block)

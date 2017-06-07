@@ -5,33 +5,34 @@
 {
     GlkController *glkctl;
     GlkStyle *styles[style_NUMSTYLES];
-    int bgnd;
-    @public
-    int name;
+    NSInteger bgnd;
 }
 
-- (id) initWithGlkController: (GlkController*)glkctl name: (int)name;
-- (void) setStyle: (int)style windowType: (int)wintype enable: (int*)enable value:(int*)value;
-- (BOOL) wantsFocus;
+@property (readonly) NSInteger name;
+
+- (BOOL) getStyleVal: (NSInteger)style hint: (NSInteger)hint value: (NSInteger *) value;
+
+- (instancetype) initWithGlkController: (GlkController*)glkctl name: (NSInteger)name NS_DESIGNATED_INITIALIZER;
+- (void) setStyle: (NSInteger)style windowType: (NSInteger)wintype enable: (NSInteger*)enable value:(NSInteger*)value;
+@property (readonly) BOOL wantsFocus;
 - (void) grabFocus;
 - (void) flushDisplay;
 - (void) markLastSeen;
 - (void) performScroll;
 - (void) makeTransparent;
-- (void) setBgColor: (int)bc;
-
+- (void) setBgColor: (NSInteger)bc;
 - (void) clear;
-- (void) putString:(NSString*)buf style:(int)style;
-- (void) moveToColumn:(int)x row:(int)y;
+- (void) putString:(NSString*)buf style:(NSInteger)style;
+- (void) moveToColumn:(NSInteger)x row:(NSInteger)y;
 - (void) initLine: (NSString*)buf;
-- (NSString*) cancelLine;
+@property (readonly, copy) NSString *cancelLine;
 - (void) initChar;
 - (void) cancelChar;
 - (void) initMouse;
 - (void) cancelMouse;
 
-- (void) fillRects: (struct fillrect *)rects count: (int)n;
-- (void) drawImage: (NSImage*)buf val1: (int)v1 val2: (int)v2 width: (int)w height: (int)h;
+- (void) fillRects: (struct fillrect *)rects count: (NSInteger)n;
+- (void) drawImage: (NSImage*)buf val1: (NSInteger)v1 val2: (NSInteger)v2 width: (NSInteger)w height: (NSInteger)h;
 - (void) flowBreak;
 
 - (void) prefsDidChange;

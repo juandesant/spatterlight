@@ -13,7 +13,9 @@
  *
  */
 
-@interface LibHelperWindow : NSWindow
+#define MAX_INFO_WINDOWS 10
+
+@interface LibHelperWindow : NSWindow<NSDraggingDestination>
 {
 }
 @end
@@ -23,9 +25,9 @@
 }
 @end
 
-@interface LibController : NSWindowController
+@interface LibController : NSWindowController<NSDraggingDestination>
 {
-    NSString *homepath;
+    NSURL *homepath;
     
     IBOutlet NSButton *infoButton;
     IBOutlet NSButton *playButton;
@@ -35,19 +37,22 @@
     
     NSMutableDictionary *metadata; /* ifid -> metadata dict */
     NSMutableDictionary *games; /* ifid -> filename */
-    
+
+    InfoController *infoWindows[MAX_INFO_WINDOWS];
+    NSInteger infoWindowIndex;
+
     IBOutlet NSTableView *gameTableView;
     NSMutableArray *gameTableModel;
     NSString *gameSortColumn;
     BOOL gameTableDirty;
     
     NSArray *searchStrings;
-
+    
     /* for the importing */
-    int cursrc;
+    NSInteger cursrc;
     NSMutableArray *ifidbuf;
     NSMutableDictionary *metabuf;
-    int errorflag;
+    NSInteger errorflag;
 }
 
 - (void) loadLibrary; /* initializer */
@@ -58,7 +63,7 @@
 
 - (NSString*) importGame: (NSString*)path reportFailure: (BOOL)report;
 - (void) addFile: (NSString*)path select: (NSMutableArray*)select;
-- (void) addFiles: (NSArray*)paths select: (NSMutableArray*)select root: (NSString*)root;
+- (void) addFiles: (NSArray*)paths select: (NSMutableArray*)select;
 - (void) addFiles: (NSArray*)paths;
 - (void) addFile: (NSString*)path;
 
@@ -71,11 +76,12 @@
 - (IBAction) importMetadata: (id)sender;
 - (IBAction) exportMetadata: (id)sender;
 - (BOOL) importMetadataFromFile: (NSString*)filename;
-- (BOOL) exportMetadataToFile: (NSString*)filename what: (int)what;
+- (BOOL) exportMetadataToFile: (NSString*)filename what: (NSInteger)what;
 
 - (IBAction) searchForGames: (id)sender;
 - (IBAction) playGame: (id)sender;
 - (IBAction) showGameInfo: (id)sender;
+- (InfoController *) createInfoController;
 - (IBAction) revealGameInFinder: (id)sender;
 - (IBAction) deleteGame: (id)sender;
 

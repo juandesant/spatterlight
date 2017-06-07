@@ -1,13 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "glk.h"
 #include "glkimp.h"
-
-/* This implements pretty much what any Glk implementation needs for 
-    stream stuff. Memory streams, file streams (using stdio functions), 
-    and window streams (which just print to stdout.) A fancier 
-    implementation would need to change the window stream stuff, but 
-    memory and file streams would stay the same. (Unless you're on a 
-    wacky platform like the Mac and want to change stdio to native file 
-    functions.) 
-*/
+#include "gi_blorb.h"
 
 static stream_t *gli_streamlist = NULL; /* linked list of all streams */
 static stream_t *gli_currentstr = NULL; /* the current output stream */
@@ -19,13 +15,16 @@ stream_t *gli_new_stream(int type, int readable, int writable,
     if (!str)
         return NULL;
     
+    str->magicnum = MAGIC_STREAM_NUM;
     str->type = type;
     str->rock = rock;
 
     str->unicode = FALSE;
+    str->isbinary = FALSE;
     
     str->win = NULL;
     str->file = NULL;
+    str->lastop = 0;
     str->buf = NULL;
     str->bufptr = NULL;
     str->bufend = NULL;
@@ -65,8 +64,14 @@ void gli_delete_stream(stream_t *str)
         gli_currentstr = NULL;
     }
     
-    gli_windows_unechostream(str);
-        
+    //gli_windows_unechostream(str);
+     win = gli_window_get();
+    if (win && win->echostr == str) {
+        win->echostr = NULL;
+    }
+    
+    str->magicnum = 0;
+
     switch (str->type) {
         case strtype_Window:
             /* nothing necessary; the window is already being closed */
@@ -80,10 +85,14 @@ void gli_delete_stream(stream_t *str)
                     str->arrayrock);
             }
             break;
+        case strtype_Resource: 
+            /* nothing necessary; the array belongs to gi_blorb.c. */
+            break;
         case strtype_File:
             /* close the FILE */
             fclose(str->file);
             str->file = NULL;
+            str->lastop = 0;
             break;
     }
 
@@ -154,12 +163,12 @@ strid_t glk_stream_open_memory(char *buf, glui32 buflen, glui32 fmode,
     }
     
     if (buf && buflen) {
-        str->buf = buf;
-        str->bufptr = buf;
+        str->buf = (unsigned char *)buf;
+        str->bufptr = (unsigned char *)buf;
         str->buflen = buflen;
         str->bufend = str->buf + str->buflen;
         if (fmode == filemode_Write)
-            str->bufeof = buf;
+            str->bufeof = str->buf;
         else
             str->bufeof = str->bufend;
         if (gli_register_arr) {
@@ -181,6 +190,27 @@ strid_t glk_stream_open_file(fileref_t *fref, glui32 fmode,
         gli_strict_warning("stream_open_file: invalid fileref id.");
         return NULL;
     }
+
+    /* The spec says that Write, ReadWrite, and WriteAppend create the
+       file if necessary. However, fopen(filename, "r+") doesn't create
+       a file. So we have to pre-create it in the ReadWrite and
+       WriteAppend cases. (We use "a" so as not to truncate, and "b" 
+       because we're going to close it immediately, so it doesn't matter.) */
+
+    /* Another Unix quirk: in r+ mode, you're not supposed to flip from
+       reading to writing or vice versa without doing an fseek. We will
+       track the most recent operation (as lastop) -- Write, Read, or
+       0 if either is legal next. */
+
+    if (fmode == filemode_ReadWrite || fmode == filemode_WriteAppend) {
+        fl = fopen(fref->filename, "ab");
+        if (!fl) {
+            gli_strict_warning("stream_open_file: unable to open file.");
+            return NULL;
+        }
+
+        fclose(fl);
+    }
     
     switch (fmode) {
         case filemode_Write:
@@ -190,10 +220,12 @@ strid_t glk_stream_open_file(fileref_t *fref, glui32 fmode,
             strcpy(modestr, "r");
             break;
         case filemode_ReadWrite:
-            strcpy(modestr, "w+");
+            strcpy(modestr, "r+");
             break;
         case filemode_WriteAppend:
-            strcpy(modestr, "a");
+            /* Can't use "a" here, because then fseek wouldn't work.
+               Instead we use "r+" and then fseek to the end. */
+            strcpy(modestr, "r+");
             break;
     }
     
@@ -205,6 +237,10 @@ strid_t glk_stream_open_file(fileref_t *fref, glui32 fmode,
         gli_strict_warning("stream_open_file: unable to open file.");
         return NULL;
     }
+    
+    if (fmode == filemode_WriteAppend) {
+        fseek(fl, 0, 2); /* ...to the end. */
+    }
 
     str = gli_new_stream(strtype_File, 
         (fmode == filemode_Read || fmode == filemode_ReadWrite), 
@@ -215,8 +251,10 @@ strid_t glk_stream_open_file(fileref_t *fref, glui32 fmode,
         fclose(fl);
         return NULL;
     }
-    
+   
+    str->isbinary = !fref->textmode;
     str->file = fl;
+    str->lastop = 0;
     
     return str;
 }
@@ -274,14 +312,126 @@ strid_t glk_stream_open_file_uni(fileref_t *fref, glui32 fmode,
 
 #endif /* GLK_MODULE_UNICODE */
 
-strid_t gli_stream_open_pathname(char *pathname, int textmode,
-    glui32 rock)
+#ifdef GLK_MODULE_RESOURCE_STREAM
+
+strid_t glk_stream_open_resource(glui32 filenum, glui32 rock)
+{
+    strid_t str;
+    int isbinary;
+    giblorb_err_t err;
+    giblorb_result_t res;
+    giblorb_map_t *map = giblorb_get_resource_map();
+    if (!map)
+        return 0; /* Not running from a blorb file */
+
+    err = giblorb_load_resource(map, giblorb_method_Memory, &res, giblorb_ID_Data, filenum);
+    if (err)
+        return 0; /* Not found, or some other error */
+
+    /* We'll use the in-memory copy of the chunk data as the basis for
+       our new stream. It's important to not call chunk_unload() until
+       the stream is closed (and we won't). 
+
+       This will be memory-hoggish for giant data chunks, but I don't
+       expect giant data chunks at this point. A more efficient model
+       would be to use the file on disk, but this requires some hacking
+       into the file stream code (we'd need to open a new FILE*) and
+       I don't feel like doing that.
+
+       Note that binary chunks are normally type BINA, but FORM
+       chunks also count as binary. (This allows us to embed AIFF
+       files as readable resources, for example.) */
+
+    if (res.chunktype == giblorb_ID_TEXT)
+        isbinary = FALSE;
+    else if (res.chunktype == giblorb_ID_BINA
+        || res.chunktype == giblorb_make_id('F', 'O', 'R', 'M'))
+        isbinary = TRUE;
+    else
+        return 0; /* Unknown chunk type */
+
+    str = gli_new_stream(strtype_Resource,
+        TRUE, FALSE, rock);
+    if (!str) {
+        gli_strict_warning("stream_open_resource: unable to create stream.");
+        return NULL;
+    }
+
+    str->isbinary = isbinary;
+    
+    if (res.data.ptr && res.length) {
+        str->buf = (unsigned char *)res.data.ptr;
+        str->bufptr = (unsigned char *)res.data.ptr;
+        str->buflen = res.length;
+        str->bufend = str->buf + str->buflen;
+        str->bufeof = str->bufend;
+    }
+    
+    return str;
+}
+
+strid_t glk_stream_open_resource_uni(glui32 filenum, glui32 rock)
+{
+    strid_t str;
+    int isbinary;
+    giblorb_err_t err;
+    giblorb_result_t res;
+    giblorb_map_t *map = giblorb_get_resource_map();
+    if (!map)
+        return 0; /* Not running from a blorb file */
+
+    err = giblorb_load_resource(map, giblorb_method_Memory, &res, giblorb_ID_Data, filenum);
+    if (err)
+        return 0; /* Not found, or some other error */
+
+    if (res.chunktype == giblorb_ID_TEXT)
+        isbinary = FALSE;
+    else if (res.chunktype == giblorb_ID_BINA
+        || res.chunktype == giblorb_make_id('F', 'O', 'R', 'M'))
+        isbinary = TRUE;
+    else
+        return 0; /* Unknown chunk type */
+
+    str = gli_new_stream(strtype_Resource, 
+        TRUE, FALSE, rock);
+    if (!str) {
+        gli_strict_warning("stream_open_resource_uni: unable to create stream.");
+        return NULL;
+    }
+    
+    str->unicode = TRUE;
+    str->isbinary = isbinary;
+
+    /* We have been handed an array of bytes. (They're big-endian
+       four-byte chunks, or perhaps a UTF-8 byte sequence, rather than
+       native-endian four-byte integers). So we drop it into buf,
+       rather than ubuf -- we'll have to do the translation in the
+       get() functions. */
+
+    if (res.data.ptr && res.length) {
+        str->buf = (unsigned char *)res.data.ptr;
+        str->bufptr = (unsigned char *)res.data.ptr;
+        str->buflen = res.length;
+        str->bufend = str->buf + str->buflen;
+        str->bufeof = str->bufend;
+    }
+    
+    return str;
+}
+
+#endif /* GLK_MODULE_RESOURCE_STREAM */
+
+strid_t gli_stream_open_pathname(char *pathname, int writemode, 
+    int textmode, glui32 rock)
 {
     char modestr[16];
     stream_t *str;
     FILE *fl;
-    
-    strcpy(modestr, "r");
+
+    if (!writemode)
+        strcpy(modestr, "r");
+    else
+        strcpy(modestr, "w");
     if (!textmode)
         strcat(modestr, "b");
         
@@ -291,13 +441,15 @@ strid_t gli_stream_open_pathname(char *pathname, int textmode,
     }
 
     str = gli_new_stream(strtype_File, 
-        TRUE, FALSE, rock);
+        !writemode, writemode, rock);
     if (!str) {
         fclose(fl);
         return NULL;
     }
     
+    str->isbinary = !textmode;
     str->file = fl;
+    str->lastop = 0;
     
     return str;
 }
@@ -308,7 +460,7 @@ stream_t *gli_stream_open_window(window_t *win)
     
     str = gli_new_stream(strtype_Window, FALSE, TRUE, 0);
     if (!str)
-	return NULL;
+        return NULL;
     
     str->win = win;
     
@@ -372,12 +524,13 @@ void glk_stream_set_position(stream_t *str, glsi32 pos, glui32 seekmode)
 
     switch (str->type) {
         case strtype_Memory: 
-            if (!str->unicode) {
+        case strtype_Resource: 
+            if (!str->unicode || str->type == strtype_Resource) {
                 if (seekmode == seekmode_Current) {
-                    pos = (str->bufptr - str->buf) + pos;
+                    pos = (glsi32)(str->bufptr - str->buf) + pos;
                 }
                 else if (seekmode == seekmode_End) {
-                    pos = (str->bufeof - str->buf) + pos;
+                    pos = (glsi32)(str->bufeof - str->buf) + pos;
                 }
                 else {
                     /* pos = pos */
@@ -385,15 +538,15 @@ void glk_stream_set_position(stream_t *str, glsi32 pos, glui32 seekmode)
                 if (pos < 0)
                     pos = 0;
                 if (pos > (str->bufeof - str->buf))
-                    pos = (str->bufeof - str->buf);
+                    pos = (glsi32)(str->bufeof - str->buf);
                 str->bufptr = str->buf + pos;
             }
             else {
                 if (seekmode == seekmode_Current) {
-                    pos = (str->ubufptr - str->ubuf) + pos;
+                    pos = (glsi32)(str->ubufptr - str->ubuf) + pos;
                 }
                 else if (seekmode == seekmode_End) {
-                    pos = (str->ubufeof - str->ubuf) + pos;
+                    pos = (glsi32)(str->ubufeof - str->ubuf) + pos;
                 }
                 else {
                     /* pos = pos */
@@ -401,7 +554,7 @@ void glk_stream_set_position(stream_t *str, glsi32 pos, glui32 seekmode)
                 if (pos < 0)
                     pos = 0;
                 if (pos > (str->ubufeof - str->ubuf))
-                    pos = (str->ubufeof - str->ubuf);
+                    pos = (glsi32)(str->ubufeof - str->ubuf);
                 str->ubufptr = str->ubuf + pos;
             }
             break;
@@ -409,6 +562,8 @@ void glk_stream_set_position(stream_t *str, glsi32 pos, glui32 seekmode)
             /* do nothing; don't pass to echo stream */
             break;
         case strtype_File:
+            /* Either reading or writing is legal after an fseek. */
+            str->lastop = 0;
             if (str->unicode) {
                 /* Use 4 here, rather than sizeof(glui32). */
                 pos *= 4;
@@ -429,24 +584,36 @@ glui32 glk_stream_get_position(stream_t *str)
 
     switch (str->type) {
         case strtype_Memory: 
-            if (!str->unicode) {
-                return (str->bufptr - str->buf);
+        case strtype_Resource: 
+            if (!str->unicode || str->type == strtype_Resource) {
+                return (glui32)(str->bufptr - str->buf);
             }
             else {
-                return (str->ubufptr - str->ubuf);
+                return (glui32)(str->ubufptr - str->ubuf);
             }
         case strtype_File:
             if (!str->unicode) {
-                return ftell(str->file);
+                return (glui32)ftell(str->file);
             }
             else {
                 /* Use 4 here, rather than sizeof(glui32). */
-                return ftell(str->file) / 4;
+                return (glui32)ftell(str->file) / 4;
             }
         case strtype_Window:
         default:
             return 0;
     }   
+}
+
+static void gli_stream_ensure_op(stream_t *str, glui32 op)
+{
+    /* We have to do an fseek() between reading and writing. This will
+       only come up for ReadWrite or WriteAppend files. */
+    if (str->lastop != 0 && str->lastop != op) {
+        long pos = ftell(str->file);
+        fseek(str->file, pos, SEEK_SET);
+    }
+    str->lastop = op;
 }
 
 static void gli_put_char(stream_t *str, unsigned char ch)
@@ -483,24 +650,36 @@ static void gli_put_char(stream_t *str, unsigned char ch)
             /* If you're going to convert Latin-1 to a different 
                 character set, this is (a) place to do it. Only on the 
                 putc(); not on the gli_put_char to echostr. */
-	    gli_window_put_char(str->win, ch);
+	    	if (!gli_utf8output)
+                gli_window_put_char(str->win, ch);
+               // putc(ch, stdout);
+            else
+            	gli_window_put_char(str->win, ch);
+            	//gli_putchar_utf8(ch, stdout); FIXME
             if (str->win->echostr)
                 gli_put_char(str->win->echostr, ch);
             break;
         case strtype_File:
+            gli_stream_ensure_op(str, filemode_Write);
             if (!str->unicode) {
                 putc(ch, str->file);
             }
             else {
-		gli_putchar_utf8(ch, str->file);
-		if (0) {            
-		    /* cheap big-endian stream */
-		    putc(0, str->file);
-		    putc(0, str->file);
-		    putc(0, str->file);
-		    putc(ch, str->file);
-		}		    
+                if (!str->isbinary) {
+                    /* cheap UTF-8 stream */
+                    gli_putchar_utf8(ch, str->file);
+                }
+                else {
+                    /* cheap big-endian stream */
+                    putc(0, str->file);
+                    putc(0, str->file);
+                    putc(0, str->file);
+                    putc(ch, str->file);
+                }
             }
+            break;
+        case strtype_Resource:
+            /* resource streams are never writable */
             break;
     }
 }
@@ -543,27 +722,39 @@ static void gli_put_char_uni(stream_t *str, glui32 ch)
             /* If you're going to convert Latin-1 to a different 
                 character set, this is (a) place to do it. Only on the 
                 putc(); not on the gli_put_char to echostr. */
-	    gli_window_put_char(str->win, ch);
+
+			if (!gli_utf8output)
+                gli_window_put_char(str->win, (ch & 0xFF));
+                //putc((ch & 0xFF), stdout);
+            else
+            	gli_window_put_char(str->win, ch);
+                //gli_putchar_utf8(ch, stdout); FIXME
             if (str->win->echostr)
                 gli_put_char_uni(str->win->echostr, ch);
             break;
         case strtype_File:
+            gli_stream_ensure_op(str, filemode_Write);
             if (!str->unicode) {
                 if (ch >= 0x100)
                     ch = '?';
                 putc(ch, str->file);
             }
             else {
-		gli_putchar_utf8(ch, str->file);
-		if (0)
-		{
-		    /* cheap big-endian stream */
-		    putc(((ch >> 24) & 0xFF), str->file);
-		    putc(((ch >> 16) & 0xFF), str->file);
-		    putc(((ch >>  8) & 0xFF), str->file);
-		    putc( (ch        & 0xFF), str->file);
-		}
+                if (!str->isbinary) {
+                    /* cheap UTF-8 stream */
+                    gli_putchar_utf8(ch, str->file);
+                }
+                else {
+                    /* cheap big-endian stream */
+                    putc(((ch >> 24) & 0xFF), str->file);
+                    putc(((ch >> 16) & 0xFF), str->file);
+                    putc(((ch >>  8) & 0xFF), str->file);
+                    putc( (ch        & 0xFF), str->file);
+                }
             }
+            break;
+        case strtype_Resource:
+            /* resource streams are never writable */
             break;
     }
 }
@@ -572,7 +763,6 @@ static void gli_put_char_uni(stream_t *str, glui32 ch)
 
 static void gli_put_buffer(stream_t *str, char *buf, glui32 len)
 {
-    char *cx;
     glui32 lx;
     
     if (!str || !str->writable)
@@ -588,7 +778,7 @@ static void gli_put_buffer(stream_t *str, char *buf, glui32 len)
                 }
                 else {
                     if (str->bufptr + len > str->bufend) {
-                        lx = (str->bufptr + len) - str->bufend;
+                        lx = (glui32)((str->bufptr + len) - str->bufend);
                         if (lx < len)
                             len -= lx;
                         else
@@ -608,7 +798,7 @@ static void gli_put_buffer(stream_t *str, char *buf, glui32 len)
                 }
                 else {
                     if (str->ubufptr + len > str->ubufend) {
-                        lx = (str->ubufptr + len) - str->ubufend;
+                        lx = (glui32)((str->ubufptr + len) - str->ubufend);
                         if (lx < len)
                             len -= lx;
                         else
@@ -633,25 +823,42 @@ static void gli_put_buffer(stream_t *str, char *buf, glui32 len)
             /* If you're going to convert Latin-1 to a different 
                 character set, this is (a) place to do it. Only on the 
                 fwrite(); not on the gli_put_buffer to echostr. */
-	    for (lx=0; lx<len; lx++)
-		gli_window_put_char(str->win, ((unsigned char *)buf)[lx]);
+            if (!gli_utf8output) {
+                fwrite((unsigned char *)buf, 1, len, stdout);
+            }
+            else {
+                for (lx=0; lx<len; lx++)
+                    //gli_putchar_utf8(((unsigned char *)buf)[lx], stdout);
+                    gli_window_put_char(str->win, ((unsigned char *)buf)[lx]);
+}
             if (str->win->echostr)
                 gli_put_buffer(str->win->echostr, buf, len);
             break;
         case strtype_File:
+            gli_stream_ensure_op(str, filemode_Write);
             if (!str->unicode) {
                 fwrite(buf, 1, len, str->file);
             }
             else {
-                /* cheap big-endian stream */
-                for (lx=0; lx<len; lx++) {
-                    unsigned char ch = ((unsigned char *)buf)[lx];
-                    putc(((ch >> 24) & 0xFF), str->file);
-                    putc(((ch >> 16) & 0xFF), str->file);
-                    putc(((ch >>  8) & 0xFF), str->file);
-                    putc( (ch        & 0xFF), str->file);
+                if (!str->isbinary) {
+                    /* cheap UTF-8 stream */
+                    for (lx=0; lx<len; lx++)
+                        gli_putchar_utf8(((unsigned char *)buf)[lx], str->file);
+                }
+                else {
+                    /* cheap big-endian stream */
+                    for (lx=0; lx<len; lx++) {
+                        unsigned char ch = ((unsigned char *)buf)[lx];
+                        putc(((ch >> 24) & 0xFF), str->file);
+                        putc(((ch >> 16) & 0xFF), str->file);
+                        putc(((ch >>  8) & 0xFF), str->file);
+                        putc( (ch        & 0xFF), str->file);
+                    }
                 }
             }
+            break;
+        case strtype_Resource:
+            /* resource streams are never writable */
             break;
     }
 }
@@ -659,20 +866,24 @@ static void gli_put_buffer(stream_t *str, char *buf, glui32 len)
 static void gli_set_style(stream_t *str, glui32 val)
 {
     if (!str || !str->writable)
-	return;
-    
+        return;
+
+    if (val >= style_NUMSTYLES)
+        val = 0;
+#if 0
     if ((val & 0xff) >= style_NUMSTYLES)
-	val = val & 0xffff00;
+        val = val & 0xffff00;
     if ((val & 0xff) < 0)
-	val = val & 0xffff00;
+        val = val & 0xffff00;
+#endif
     
     switch (str->type)
     {
         case strtype_Window:
-	    str->win->style = val;
-	    if (str->win->echostr)
-		gli_set_style(str->win->echostr, val);
-                break;
+            str->win->style = val;
+            if (str->win->echostr)
+                gli_set_style(str->win->echostr, val);
+            break;
     }
 }
 
@@ -712,6 +923,41 @@ static glsi32 gli_get_char(stream_t *str, int want_unicode)
         return -1;
     
     switch (str->type) {
+        case strtype_Resource:
+            if (str->unicode) {
+                glui32 ch;
+                if (str->isbinary) {
+                    /* cheap big-endian stream */
+                    if (str->bufptr >= str->bufend)
+                        return -1;
+                    ch = *(str->bufptr);
+                    str->bufptr++;
+                    if (str->bufptr >= str->bufend)
+                        return -1;
+                    ch = (ch << 8) | (*(str->bufptr) & 0xFF);
+                    str->bufptr++;
+                    if (str->bufptr >= str->bufend)
+                        return -1;
+                    ch = (ch << 8) | (*(str->bufptr) & 0xFF);
+                    str->bufptr++;
+                    if (str->bufptr >= str->bufend)
+                        return -1;
+                    ch = (ch << 8) | (*(str->bufptr) & 0xFF);
+                    str->bufptr++;
+                }
+                else {
+                    /* slightly less cheap UTF8 stream */
+                    glui32 val0, val1, val2, val3;
+                    int flag = UTF8_DECODE_INLINE(&ch, (str->bufptr >= str->bufend), (*(str->bufptr++)), val0, val1, val2, val3);
+                    if (!flag)
+                        return -1;
+                }
+                str->readcount++;
+                if (!want_unicode && ch >= 0x100)
+                    return '?';
+                return (glsi32)ch;
+            }
+            /* for text streams, fall through to memory case */
         case strtype_Memory:
             if (!str->unicode) {
                 if (str->bufptr < str->bufend) {
@@ -740,6 +986,7 @@ static glsi32 gli_get_char(stream_t *str, int want_unicode)
                 }
             }
         case strtype_File: 
+            gli_stream_ensure_op(str, filemode_Read);
             if (!str->unicode) {
                 int res;
                 res = getc(str->file);
@@ -751,33 +998,42 @@ static glsi32 gli_get_char(stream_t *str, int want_unicode)
                     return -1;
                 }
             }
+            else if (str->isbinary) {
+                /* cheap big-endian stream */
+                int res;
+                glui32 ch;
+                res = getc(str->file);
+                if (res == -1)
+                    return -1;
+                ch = (res & 0xFF);
+                res = getc(str->file);
+                if (res == -1)
+                    return -1;
+                ch = (ch << 8) | (res & 0xFF);
+                res = getc(str->file);
+                if (res == -1)
+                    return -1;
+                ch = (ch << 8) | (res & 0xFF);
+                res = getc(str->file);
+                if (res == -1)
+                    return -1;
+                ch = (ch << 8) | (res & 0xFF);
+                str->readcount++;
+                if (!want_unicode && ch >= 0x100)
+                    return '?';
+                return (glsi32)ch;
+            }
             else {
-		glui32 ch;
-		ch = gli_getchar_utf8(str->file);
-		if (0)
-		{
-		    /* cheap big-endian stream */
-		    int res;
-		    res = getc(str->file);
-		    if (res == -1)
-			return -1;
-		    ch = (res & 0xFF);
-		    res = getc(str->file);
-		    if (res == -1)
-			return -1;
-		    ch = (ch << 8) | (res & 0xFF);
-		    res = getc(str->file);
-		    if (res == -1)
-			return -1;
-		    ch = (ch << 8) | (res & 0xFF);
-		    res = getc(str->file);
-		    if (res == -1)
-			return -1;
-		    ch = (ch << 8) | (res & 0xFF);
-		    str->readcount++;
-		}
-		if (!want_unicode && ch >= 0x100)
-		    return '?';
+                /* slightly less cheap UTF-8 stream */
+                glui32 val0, val1, val2, val3;
+                int res;
+                glui32 ch;
+                int flag = UTF8_DECODE_INLINE(&ch, (res=getc(str->file), res == -1), (res & 0xFF), val0, val1, val2, val3);
+                if (!flag)
+                    return -1;
+                str->readcount++;
+                if (!want_unicode && ch >= 0x100)
+                    return '?';
                 return (glsi32)ch;
             }
         case strtype_Window:
@@ -793,6 +1049,52 @@ static glui32 gli_get_buffer(stream_t *str, char *cbuf, glui32 *ubuf,
         return 0;
     
     switch (str->type) {
+        case strtype_Resource:
+            if (str->unicode) {
+                glui32 count = 0;
+                while (count < len) {
+                    glui32 ch;
+                    if (str->isbinary) {
+                        /* cheap big-endian stream */
+                        if (str->bufptr >= str->bufend)
+                            break;
+                        ch = *(str->bufptr);
+                        str->bufptr++;
+                        if (str->bufptr >= str->bufend)
+                            break;
+                        ch = (ch << 8) | (*(str->bufptr) & 0xFF);
+                        str->bufptr++;
+                        if (str->bufptr >= str->bufend)
+                            break;
+                        ch = (ch << 8) | (*(str->bufptr) & 0xFF);
+                        str->bufptr++;
+                        if (str->bufptr >= str->bufend)
+                            break;
+                        ch = (ch << 8) | (*(str->bufptr) & 0xFF);
+                        str->bufptr++;
+                    }
+                    else {
+                        /* slightly less cheap UTF8 stream */
+                        glui32 val0, val1, val2, val3;
+                        int flag = UTF8_DECODE_INLINE(&ch, (str->bufptr >= str->bufend), (*(str->bufptr++)), val0, val1, val2, val3);
+                        if (!flag)
+                            break;
+                    }
+                    if (cbuf) {
+                        if (ch >= 0x100)
+                            cbuf[count] = '?';
+                        else
+                            cbuf[count] = ch;
+                    }
+                    else {
+                        ubuf[count] = ch;
+                    }
+                    count++;
+                }
+                str->readcount += count;
+                return count;
+            }
+            /* for text streams, fall through to memory case */
         case strtype_Memory:
             if (!str->unicode) {
                 if (str->bufptr >= str->bufend) {
@@ -801,7 +1103,7 @@ static glui32 gli_get_buffer(stream_t *str, char *cbuf, glui32 *ubuf,
                 else {
                     if (str->bufptr + len > str->bufend) {
                         glui32 lx;
-                        lx = (str->bufptr + len) - str->bufend;
+                        lx = (glui32)((str->bufptr + len) - str->bufend);
                         if (lx < len)
                             len -= lx;
                         else
@@ -830,7 +1132,7 @@ static glui32 gli_get_buffer(stream_t *str, char *cbuf, glui32 *ubuf,
                 else {
                     if (str->ubufptr + len > str->ubufend) {
                         glui32 lx;
-                        lx = (str->ubufptr + len) - str->ubufend;
+                        lx = (glui32)((str->ubufptr + len) - str->ubufend);
                         if (lx < len)
                             len -= lx;
                         else
@@ -860,10 +1162,11 @@ static glui32 gli_get_buffer(stream_t *str, char *cbuf, glui32 *ubuf,
             str->readcount += len;
             return len;
         case strtype_File: 
+            gli_stream_ensure_op(str, filemode_Read);
             if (!str->unicode) {
                 if (cbuf) {
                     glui32 res;
-                    res = fread(cbuf, 1, len, str->file);
+                    res = (glui32)fread(cbuf, 1, len, str->file);
                     str->readcount += res;
                     return res;
                 }
@@ -882,7 +1185,8 @@ static glui32 gli_get_buffer(stream_t *str, char *cbuf, glui32 *ubuf,
                     return lx;
                 }
             }
-            else {
+            else if (str->isbinary) {
+                /* cheap big-endian stream */
                 glui32 lx;
                 for (lx=0; lx<len; lx++) {
                     int res;
@@ -915,6 +1219,28 @@ static glui32 gli_get_buffer(stream_t *str, char *cbuf, glui32 *ubuf,
                 }
                 return lx;
             }
+            else {
+                /* slightly less cheap UTF-8 stream */
+                glui32 lx;
+                for (lx=0; lx<len; lx++) {
+                    glui32 val0, val1, val2, val3;
+                    int res;
+                    glui32 ch;
+                    int flag = UTF8_DECODE_INLINE(&ch, (res=getc(str->file), res == -1), (res & 0xFF), val0, val1, val2, val3);
+                    if (!flag)
+                        break;
+                    str->readcount++;
+                    if (cbuf) {
+                        if (ch >= 0x100)
+                            ch = '?';
+                        cbuf[lx] = ch;
+                    }
+                    else {
+                        ubuf[lx] = ch;
+                    }
+                }
+                return lx;
+            }
         case strtype_Window:
         default:
             return 0;
@@ -931,6 +1257,61 @@ static glui32 gli_get_line(stream_t *str, char *cbuf, glui32 *ubuf,
         return 0;
     
     switch (str->type) {
+        case strtype_Resource:
+            if (len == 0)
+                return 0;
+            len -= 1; /* for the terminal null */
+            if (str->unicode) {
+                glui32 count = 0;
+                while (count < len) {
+                    glui32 ch;
+                    if (str->isbinary) {
+                        /* cheap big-endian stream */
+                        if (str->bufptr >= str->bufend)
+                            break;
+                        ch = *(str->bufptr);
+                        str->bufptr++;
+                        if (str->bufptr >= str->bufend)
+                            break;
+                        ch = (ch << 8) | (*(str->bufptr) & 0xFF);
+                        str->bufptr++;
+                        if (str->bufptr >= str->bufend)
+                            break;
+                        ch = (ch << 8) | (*(str->bufptr) & 0xFF);
+                        str->bufptr++;
+                        if (str->bufptr >= str->bufend)
+                            break;
+                        ch = (ch << 8) | (*(str->bufptr) & 0xFF);
+                        str->bufptr++;
+                    }
+                    else {
+                        /* slightly less cheap UTF8 stream */
+                        glui32 val0, val1, val2, val3;
+                        int flag = UTF8_DECODE_INLINE(&ch, (str->bufptr >= str->bufend), (*(str->bufptr++)), val0, val1, val2, val3);
+                        if (!flag)
+                            break;
+                    }
+                    if (cbuf) {
+                        if (ch >= 0x100)
+                            cbuf[count] = '?';
+                        else
+                            cbuf[count] = ch;
+                    }
+                    else {
+                        ubuf[count] = ch;
+                    }
+                    count++;
+                    if (ch == '\n')
+                        break;
+                }
+                if (cbuf)
+                    cbuf[count] = '\0';
+                else
+                    ubuf[count] = '\0';
+                str->readcount += count;
+                return count;
+            }
+            /* for text streams, fall through to memory case */
         case strtype_Memory:
             if (len == 0)
                 return 0;
@@ -941,7 +1322,7 @@ static glui32 gli_get_line(stream_t *str, char *cbuf, glui32 *ubuf,
                 }
                 else {
                     if (str->bufptr + len > str->bufend) {
-                        lx = (str->bufptr + len) - str->bufend;
+                        lx = (glui32)((str->bufptr + len) - str->bufend);
                         if (lx < len)
                             len -= lx;
                         else
@@ -971,7 +1352,7 @@ static glui32 gli_get_line(stream_t *str, char *cbuf, glui32 *ubuf,
                 }
                 else {
                     if (str->ubufptr + len > str->ubufend) {
-                        lx = (str->ubufptr + len) - str->ubufend;
+                        lx = (glui32)((str->ubufptr + len) - str->ubufend);
                         if (lx < len)
                             len -= lx;
                         else
@@ -1004,14 +1385,19 @@ static glui32 gli_get_line(stream_t *str, char *cbuf, glui32 *ubuf,
             str->readcount += lx;
             return lx;
         case strtype_File: 
+            gli_stream_ensure_op(str, filemode_Read);
             if (!str->unicode) {
                 if (cbuf) {
                     char *res;
                     res = fgets(cbuf, len, str->file);
-                    if (!res)
+                    if (!res) {
                         return 0;
-                    else
-                        return strlen(cbuf);
+                    }
+                    else {
+                        glui32 lx = (glui32)strlen(cbuf);
+                        str->readcount += lx;
+                        return lx;
+                    }
                 }
                 else {
                     glui32 lx;
@@ -1030,10 +1416,12 @@ static glui32 gli_get_line(stream_t *str, char *cbuf, glui32 *ubuf,
                         ubuf[lx] = ch;
                         gotnewline = (ch == '\n');
                     }
+                    ubuf[lx] = '\0';
                     return lx;
                 }
             }
-            else {
+            else if (str->isbinary) {
+                /* cheap big-endian stream */
                 glui32 lx;
                 if (len == 0)
                     return 0;
@@ -1075,6 +1463,37 @@ static glui32 gli_get_line(stream_t *str, char *cbuf, glui32 *ubuf,
                     ubuf[lx] = '\0';
                 return lx;
             }
+            else {
+                /* slightly less cheap UTF-8 stream */
+                glui32 lx;
+                if (len == 0)
+                    return 0;
+                len -= 1; /* for the terminal null */
+                gotnewline = FALSE;
+                for (lx=0; lx<len && !gotnewline; lx++) {
+                    glui32 val0, val1, val2, val3;
+                    int res;
+                    glui32 ch;
+                    int flag = UTF8_DECODE_INLINE(&ch, (res=getc(str->file), res == -1), (res & 0xFF), val0, val1, val2, val3);
+                    if (!flag)
+                        break;
+                    str->readcount++;
+                    if (cbuf) {
+                        if (ch >= 0x100)
+                            ch = '?';
+                        cbuf[lx] = ch;
+                    }
+                    else {
+                        ubuf[lx] = ch;
+                    }
+                    gotnewline = (ch == '\n');
+                }
+                if (cbuf)
+                    cbuf[lx] = '\0';
+                else 
+                    ubuf[lx] = '\0';
+                return lx;
+            }
         case strtype_Window:
         default:
             return 0;
@@ -1097,7 +1516,7 @@ void glk_put_char_stream(stream_t *str, unsigned char ch)
 
 void glk_put_string(char *s)
 {
-    gli_put_buffer(gli_currentstr, s, strlen(s));
+    gli_put_buffer(gli_currentstr, s, (glui32)strlen(s));
 }
 
 void glk_put_string_stream(stream_t *str, char *s)
@@ -1106,7 +1525,7 @@ void glk_put_string_stream(stream_t *str, char *s)
         gli_strict_warning("put_string_stream: invalid ref");
         return;
     }
-    gli_put_buffer(str, s, strlen(s));
+    gli_put_buffer(str, s, (glui32)strlen(s));
 }
 
 void glk_put_buffer(char *buf, glui32 len)
@@ -1261,4 +1680,81 @@ glui32 glk_get_buffer_stream(stream_t *str, char *buf, glui32 len)
     }
     return gli_get_buffer(str, buf, NULL, len);
 }
+
+#ifdef GLK_MODULE_HYPERLINKS
+
+static void gli_set_hyperlink(stream_t *str, glui32 linkval)
+{
+    if (!str || !str->writable)
+        return;
+
+    switch (str->type)
+    {
+        case strtype_Window:
+            str->win->attr.hyper = linkval;
+            break;
+    }
+    
+}
+
+void glk_set_hyperlink(glui32 linkval)
+{
+    gli_set_hyperlink(gli_currentstr, linkval);
+}
+
+void glk_set_hyperlink_stream(strid_t str, glui32 linkval)
+{
+    if (!str)
+    {
+        gli_strict_warning("set_hyperlink_stream: invalid ref");
+        return;
+    }
+    
+    gli_set_hyperlink(str, linkval);
+    
+}
+
+void glk_request_hyperlink_event(winid_t win)
+{
+    if (!win)
+    {
+        gli_strict_warning("request_hyperlink_event: invalid ref");
+        return;
+    }
+
+    switch (win->type)
+    {
+        case wintype_TextBuffer:
+        case wintype_TextGrid:
+        case wintype_Graphics:
+            win->hyper_request = TRUE;
+            break;
+        default:
+            /* do nothing */
+            break;
+    }
+}
+
+void glk_cancel_hyperlink_event(winid_t win)
+{
+    if (!win)
+    {
+        gli_strict_warning("cancel_hyperlink_event: invalid ref");
+        return;
+    }
+
+    switch (win->type)
+    {
+        case wintype_TextBuffer:
+        case wintype_TextGrid:
+        case wintype_Graphics:
+            win->hyper_request = FALSE;
+            break;
+        default:
+            /* do nothing */
+            break;
+    }
+}
+
+#endif /* GLK_MODULE_HYPERLINKS */
 

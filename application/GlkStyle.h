@@ -11,17 +11,19 @@
 @interface GlkStyle : NSObject
 {
     NSMutableDictionary *dict;
-    int stylenumber;
-    int windowtype;
-    int enabled[stylehint_NUMHINTS];
-    int value[stylehint_NUMHINTS];
+    NSInteger stylenumber;
+    NSInteger windowtype;
+    NSInteger enabled[stylehint_NUMHINTS];
+    NSInteger value[stylehint_NUMHINTS];
 }
 
-- initWithStyle: (int)stylenumber_
-     windowType: (int)windowtype_
-	 enable: (int*)enablearray
-	  value: (int*)valuearray;
+- (instancetype) initWithStyle: (NSInteger)stylenumber_
+     windowType: (NSInteger)windowtype_
+         enable: (NSInteger *)enablearray
+          value: (NSInteger *)valuearray NS_DESIGNATED_INITIALIZER;
 - (void) prefsDidChange;
-- (NSDictionary*) attributes;
+- (BOOL) valueForHint: (NSInteger) hint value:(NSInteger *)val;
+
+@property (readonly, copy) NSDictionary *attributes;
 
 @end

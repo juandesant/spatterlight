@@ -9,7 +9,7 @@ struct message
 
 struct fillrect
 {
-    unsigned int color;
+    uint32_t color;
     short x, y, w, h;
 };
 
@@ -36,13 +36,16 @@ enum
     MAKETRANSPARENT,
     STYLEHINT,
     CLEARHINT,
+    STYLEMEASURE,
     SETBGND,
+    SETTITLE,
     
     TIMER,
     INITCHAR,
     CANCELCHAR,
     INITLINE,
     CANCELLINE,
+    SETECHO,
     INITMOUSE,
     CANCELMOUSE,
     
@@ -60,6 +63,14 @@ enum
     SETVOLUME,
     PLAYSOUND,
     STOPSOUND,
+
+#ifdef GLK_MODULE_HYPERLINKS
+
+    SETLINK,
+    INITLINK,
+    CANCELLINK,
+
+#endif
     
     NEXTEVENT,
     EVTARRANGE,

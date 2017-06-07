@@ -2,41 +2,53 @@
 
 @implementation GlkWindow
 
-- (id) initWithGlkController: (GlkController*)glkctl_ name: (int)name_
+- (instancetype) initWithFrame:(NSRect)frameRect
 {
-    [super init];
-    
-    glkctl = glkctl_;
-    name = name_;
-    bgnd = 0;
-    
-    // NSLog(@"new window %d (%@)", name, [self class]);
+    return [self initWithGlkController:[[GlkController alloc] init] name:0];
+}
+
+- (instancetype) initWithCoder:(NSCoder *)coder
+{
+    return [self initWithGlkController:[[GlkController alloc] init] name:0];
+}
+
+- (instancetype) initWithGlkController: (GlkController*)glkctl_ name: (NSInteger)name
+{
+    self = [super initWithFrame:NSZeroRect];
+
+    if (self)
+    {
+        glkctl = glkctl_;
+        _name = name;
+        //bgnd = 0xFFFFFF; // White
+    }
     
     return self;
 }
 
-- (void) dealloc
+- (void) setStyle: (NSInteger)style windowType: (NSInteger)wintype enable: (NSInteger*)enable value:(NSInteger*)value
 {
-    int i;
-    for (i = 0; i < style_NUMSTYLES; i++)
- 	[styles[i] release];
-    [super dealloc];
-}
-
-- (void) setStyle: (int)style windowType: (int)wintype enable: (int*)enable value:(int*)value
-{
-    int i;
-
     if (styles[style])
     {
-	[styles[style] release];
-	styles[style] = 0;
+        styles[style] = 0;
+    }
+    
+    styles[style] = [[GlkStyle alloc] initWithStyle: style
+                                         windowType: wintype
+                                             enable: enable
+                                              value: value];
+}
+
+- (BOOL) getStyleVal: (NSInteger)style hint: (NSInteger)hint value:(NSInteger *)value
+{
+    GlkStyle *checkedStyle = styles[style];
+    if(checkedStyle)
+    {
+        if ([checkedStyle valueForHint:hint value:value])
+            return YES;
     }
 
-    styles[style] = [[GlkStyle alloc] initWithStyle: style
-					 windowType: wintype
-					     enable: enable
-					      value: value];
+    return NO;
 }
 
 - (BOOL) isOpaque
@@ -46,12 +58,12 @@
 
 - (void) setFrame: (NSRect)thisframe
 {
-    NSRect mainframe = [[self superview] frame];
-    int hmask, vmask;
-    int rgt = 0;
-    int bot = 0;
+    NSRect mainframe = self.superview.frame;
+    NSInteger hmask, vmask;
+    NSInteger rgt = 0;
+    NSInteger bot = 0;
     
-    [super setFrame: thisframe];
+    super.frame = thisframe;
     
     /* set autoresizing for live resize. */
     /* the client should rearrange after it's finished. */
@@ -60,29 +72,29 @@
     /* x and y separable */
     
     if (NSMaxX(thisframe) == NSMaxX(mainframe))
-	rgt = 1;
+        rgt = 1;
     
     if (NSMaxY(thisframe) == NSMaxY(mainframe))
-	bot = 1;
+        bot = 1;
     
     if (rgt)
-	hmask = NSViewWidthSizable;
+        hmask = NSViewWidthSizable;
     else
-	hmask = NSViewMaxXMargin;
+        hmask = NSViewMaxXMargin;
     
     if (bot)
-	vmask = NSViewHeightSizable;
+        vmask = NSViewHeightSizable;
     else
-	vmask = NSViewMaxYMargin;
+        vmask = NSViewMaxYMargin;
     
-    [self setAutoresizingMask: hmask | vmask];
+    self.autoresizingMask = hmask | vmask;
 }
 
 - (void) prefsDidChange
 {
-    int i;
+    NSInteger i;
     for (i = 0; i < style_NUMSTYLES; i++)
-	[styles[i] prefsDidChange];
+        [styles[i] prefsDidChange];
 }
 
 - (void) terpDidStop
@@ -97,24 +109,24 @@
 - (void) grabFocus
 {
     // NSLog(@"grab focus in window %d", name);
-    [[self window] makeFirstResponder: self];
+    [self.window makeFirstResponder: self];
 }
 
 - (void) flushDisplay
 {
 }
 
-- (void) setBgColor: (int)bc
+- (void) setBgColor: (NSInteger)bc
 {
-    bgnd = bc;
+    NSLog(@"set background color in %@ not allowed", [self class]);
 }
 
-- (void) fillRects: (struct fillrect *)rects count: (int)n
+- (void) fillRects: (struct fillrect *)rects count: (NSInteger)n
 {
     NSLog(@"fillrect in %@ not implemented", [self class]);
 }
 
-- (void) drawImage: (NSImage*)buf val1: (int)v1 val2: (int)v2 width: (int)w height: (int)h
+- (void) drawImage: (NSImage*)buf val1: (NSInteger)v1 val2: (NSInteger)v2 width: (NSInteger)w height: (NSInteger)h
 {
     NSLog(@"drawimage in %@ not implemented", [self class]);
 }
@@ -137,12 +149,12 @@
     NSLog(@"clear in %@ not implemented", [self class]);
 }
 
-- (void) putString:(NSString*)buf style:(int)style
+- (void) putString:(NSString*)buf style:(NSInteger)style
 {
     NSLog(@"print in %@ not implemented", [self class]);
 }
 
-- (void) moveToColumn:(int)x row:(int)y
+- (void) moveToColumn:(NSInteger)x row:(NSInteger)y
 {
     NSLog(@"move cursor in %@ not implemented", [self class]);
 }

@@ -4,7 +4,11 @@
 
 #import "main.h"
 
+#ifdef DEBUG
+#define NSLog(FORMAT, ...) fprintf(stderr,"%s\n", [[NSString stringWithFormat:FORMAT, ##__VA_ARGS__] UTF8String]);
+#else
 #define NSLog(...)
+#endif
 
 @implementation AppDelegate
 
@@ -16,45 +20,31 @@ NSDictionary *gFormatMap;
 {
     NSLog(@"appdel: awakeFromNib");
     
-    gGameFileTypes = [[NSArray alloc] initWithObjects:
-	@"d$$", @"dat", @"sna",
-	@"advsys", @"quill",
-	@"l9", @"mag", @"a3c", @"acd", @"agx", @"gam", @"t3", @"hex", @"taf",
-	@"z3", @"z4", @"z5", @"z7", @"z8", @"ulx",
-	@"blb", @"blorb", @"glb", @"gblorb", @"zlb", @"zblorb",
-	nil];
+    gGameFileTypes = @[@"d$$", @"dat", @"sna",
+                      @"advsys", @"quill",
+                      @"l9", @"mag", @"a3c", @"acd", @"agx", @"gam", @"t3", @"hex", @"taf",
+                      @"z3", @"z4", @"z5", @"z7", @"z8", @"ulx",
+                      @"blb", @"blorb", @"glb", @"gblorb", @"zlb", @"zblorb"];
     
-    gExtMap = [[NSDictionary alloc] initWithObjectsAndKeys:
-	@"alan2", @"acd",
-	@"alan3", @"a3c",
-	@"agility", @"d$$",
-	NULL];
+    gExtMap = @{@"acd": @"alan2",
+               @"a3c": @"alan3",
+               @"d$$": @"agility"};
     
-    gFormatMap = [[NSDictionary alloc] initWithObjectsAndKeys:
-	@"scare",	@"adrift",
-	@"advsys",	@"advsys",
-	@"agility",	@"agt",
-	@"glulxe",      @"glulx",
-	@"hugo",	@"hugo",
-	@"level9",	@"level9",
-	@"magnetic",	@"magscrolls",
-	@"unquill",     @"quill",
-	@"tadsr",	@"tads2",
-	@"tadsr",	@"tads3",
-	@"frotz",	@"zcode",
-	NULL];
+    gFormatMap = @{@"adrift": @"scare",
+                  @"advsys": @"advsys",
+                  @"agt": @"agility",
+                  @"glulx": @"glulxe",
+                  @"hugo": @"hugo",
+                  @"level9": @"level9",
+                  @"magscrolls": @"magnetic",
+                  @"quill": @"unquill",
+                  @"tads2": @"tadsr",
+                  @"tads3": @"tadsr",
+                  @"zcode": @"frotz"};
     
     prefctl = [[Preferences alloc] initWithWindowNibName: @"PrefsWindow"];
     libctl = [[LibController alloc] initWithWindowNibName: @"LibraryWindow"];
     [libctl loadLibrary];
- }
-
-- (void) dealloc
-{
-    NSLog(@"appdel: dealloc");
-    [libctl release];
-    [prefctl release];
-    [super dealloc];
 }
 
 - (IBAction) showPrefs: (id)sender
@@ -73,7 +63,7 @@ NSDictionary *gFormatMap;
 {
     NSLog(@"appdel: showHelpFile('%@')", [sender title]);
     id title = [sender title];
-    id pathname = [[NSBundle mainBundle] resourcePath];
+    id pathname = [NSBundle mainBundle].resourcePath;
     id filename = [NSString stringWithFormat: @"%@/docs/%@.rtf", pathname, title];
     [[NSWorkspace sharedWorkspace] openFile: filename];
 }
@@ -105,6 +95,7 @@ NSDictionary *gFormatMap;
     [libctl deleteLibrary: sender];
 }
 
+
 /*
  * Open and play game directly.
  */
@@ -113,38 +104,36 @@ NSDictionary *gFormatMap;
 {
     NSLog(@"appdel: openDocument");
     
-    NSString *directory = [[NSUserDefaults standardUserDefaults] objectForKey: @"GameDirectory"];
+    NSURL *directory = [NSURL fileURLWithPath:[[NSUserDefaults standardUserDefaults] objectForKey: @"GameDirectory"] isDirectory:YES];
     NSOpenPanel *panel;
+    
     if (filePanel)
     {
-	[filePanel makeKeyAndOrderFront: nil];
+        [filePanel makeKeyAndOrderFront: nil];
     }
     else
     {
-	panel = [[NSOpenPanel openPanel] retain];
-	[panel beginForDirectory: nil
-			    file: directory
-			   types: gGameFileTypes
-		modelessDelegate: self
-		  didEndSelector: @selector(openPanelDidEnd:returnCode:contextInfo:)
-		     contextInfo: NULL];
-	filePanel = panel;
+        panel = [NSOpenPanel openPanel];
+        
+        panel.allowedFileTypes = gGameFileTypes;
+        panel.directoryURL = directory;
+        NSLog(@"directory = %@", directory);
+        [panel beginWithCompletionHandler:^(NSInteger result){
+            if (result == NSFileHandlingPanelOKButton) {
+                NSURL*  theDoc = panel.URLs[0];
+                {
+                    NSString *pathString = theDoc.path.stringByDeletingLastPathComponent;
+                    NSLog(@"directory = %@", directory);
+                    if ([theDoc.path.pathExtension isEqualToString: @"sav"])
+                        [[NSUserDefaults standardUserDefaults] setObject: pathString forKey: @"SaveDirectory"];
+                    else
+                        [[NSUserDefaults standardUserDefaults] setObject: pathString forKey: @"GameDirectory"];
+                    
+                    [self application: NSApp openFile: theDoc.path];
+                }
+            }
+        }];
     }
-}
-
-- (void) openPanelDidEnd: (NSOpenPanel*)panel returnCode: (int)code contextInfo: (void*)ctx
-{
-    if (code == NSOKButton)
-    {
-	if ([[[panel filename] pathExtension] isEqualToString: @"sav"])
-	    [[NSUserDefaults standardUserDefaults] setObject: [panel directory] forKey: @"SaveDirectory"];
-	else
-	    [[NSUserDefaults standardUserDefaults] setObject: [panel directory] forKey: @"GameDirectory"];
-	
-	[self application: NSApp openFile: [panel filename]];
-    }
-    
-    [panel release];
     filePanel = nil;
 }
 
@@ -152,13 +141,13 @@ NSDictionary *gFormatMap;
 {
     NSLog(@"appdel: openFile '%@'", path);
     
-    if ([[[path pathExtension] lowercaseString] isEqualToString: @"ifiction"])
+    if ([path.pathExtension.lowercaseString isEqualToString: @"ifiction"])
     {
-	[libctl importMetadataFromFile: path];
+        [libctl importMetadataFromFile: path];
     }
     else
     {
-	[libctl importAndPlayGame: path];
+        [libctl importAndPlayGame: path];
     }
     
     return YES;
@@ -173,30 +162,30 @@ NSDictionary *gFormatMap;
 
 - (NSApplicationTerminateReply) applicationShouldTerminate: (NSApplication *)app
 {
-    NSArray *windows = [app windows];
-    int count = [windows count];
-    int alive = 0;
+    NSArray *windows = app.windows;
+    NSInteger count = windows.count;
+    NSInteger alive = 0;
     
     NSLog(@"appdel: applicationShouldTerminate");
     
     while (count--)
     {
-        NSWindow *window = [windows objectAtIndex: count];
-	id glkctl = [window delegate];
-	if ([glkctl isKindOfClass: [GlkController class]] && [glkctl isAlive])
-	    alive ++;
+        NSWindow *window = windows[count];
+        id glkctl = window.delegate;
+        if ([glkctl isKindOfClass: [GlkController class]] && [glkctl isAlive])
+            alive ++;
     }
     
-    NSLog(@"appdel: windows=%d alive=%d", [windows count], alive);
+    NSLog(@"appdel: windows=%lu alive=%ld", (unsigned long)[windows count], (long)alive);
     
     if (alive > 0)
     {
-	NSString *msg = @"You still have one game running.\nAny unsaved progress will be lost.";
-	if (alive > 1)
-	    msg = [NSString stringWithFormat: @"You have %d games running.\nAny unsaved progress will be lost.", alive];
-	int choice = NSRunAlertPanel(@"Do you really want to quit?", msg, @"Quit", NULL, @"Cancel");
-	if (choice == NSAlertOtherReturn)
-	    return NSTerminateCancel;
+        NSString *msg = @"You still have one game running.\nAny unsaved progress will be lost.";
+        if (alive > 1)
+            msg = [NSString stringWithFormat: @"You have %ld games running.\nAny unsaved progress will be lost.", (long)alive];
+        NSInteger choice = NSRunAlertPanel(@"Do you really want to quit?", @"%@", @"Quit", NULL, @"Cancel", msg);
+        if (choice == NSAlertOtherReturn)
+            return NSTerminateCancel;
     }
     
     return NSTerminateNow;

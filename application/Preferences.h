@@ -19,7 +19,8 @@
     IBOutlet NSButton *btnEnableSound;
     IBOutlet NSButton *btnEnableStyles;
     IBOutlet NSButton *btnUseScreenFonts;
-    NSFont **selfontp;
+    NSFont * __strong *selfontp;
+    NSColor * __strong *colorp;
 }
 
 + (void) rebuildTextAttributes;
@@ -43,23 +44,25 @@
 + (NSColor*) gridForeground;
 + (NSColor*) bufferBackground;
 + (NSColor*) bufferForeground;
++ (NSColor*) inputColor;
+
 
 + (NSColor*) foregroundColor: (int)number;
 + (NSColor*) backgroundColor: (int)number;
 
 + (float) lineHeight;
 + (float) charWidth;
-+ (int) gridMargins;
-+ (int) bufferMargins;
++ (NSInteger) gridMargins;
++ (NSInteger) bufferMargins;
 + (float) leading;
 
-+ (int) stylesEnabled;
-+ (int) smartQuotes;
-+ (int) spaceFormat;
++ (NSInteger) stylesEnabled;
++ (NSInteger) smartQuotes;
++ (NSInteger) spaceFormat;
 
-+ (int) graphicsEnabled;
-+ (int) soundEnabled;
-+ (int) useScreenFonts;
++ (NSInteger) graphicsEnabled;
++ (NSInteger) soundEnabled;
++ (NSInteger) useScreenFonts;
 
 + (NSDictionary*) attributesForGridStyle: (int)style;
 + (NSDictionary*) attributesForBufferStyle: (int)style;

@@ -19,6 +19,8 @@
 #include "glkio.h"
 #include "args.h"
 
+#include "alan.version.h"
+
 glkunix_argumentlist_t glkunix_arguments[] = {
   { "-v", glkunix_arg_NoValue, "-v: verbose mode" },
   { "-l", glkunix_arg_NoValue, "-l: log player command and game output" },
@@ -39,12 +41,16 @@ int glkunix_startup_code(glkunix_startup_t *data)
     printf("FATAL ERROR: Cannot open initial window");
     glk_exit();
   }
+  glk_stylehint_set (wintype_TextGrid, style_User1, stylehint_ReverseColor, 1);
   glkStatusWin = glk_window_open(glkMainWin, winmethod_Above |
     winmethod_Fixed, 1, wintype_TextGrid, 0);
   glk_set_window(glkMainWin);
   
   /* now process the command line arguments */
   args(data->argc, data->argv);
+
+  garglk_set_program_name(alan.shortHeader);
+  garglk_set_program_info("Alan Interpreter 2.8.6 by Thomas Nilsson\n");
 
   return TRUE;
 }
