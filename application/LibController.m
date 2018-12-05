@@ -3,6 +3,7 @@
  */
 
 #import "main.h"
+#import "InfoController.h"
 
 #ifdef DEBUG
 #define NSLog(FORMAT, ...) fprintf(stderr,"%s\n", [[NSString stringWithFormat:FORMAT, ##__VA_ARGS__] UTF8String]);
@@ -40,22 +41,22 @@ enum { X_EDITED, X_LIBRARY, X_DATABASE }; // export selections
     NSDictionary *newUserInfo;
     NSNumber *textMovement;
     int movementCode;
-    
-    userInfo = notification.userInfo;
+
+    userInfo = [notification userInfo];
     textMovement = userInfo[@"NSTextMovement"];
-    movementCode = textMovement.intValue;
-    
+    movementCode = [textMovement intValue];
+
     // see if this a 'pressed-return' instance
     if (movementCode == NSReturnTextMovement)
     {
         // hijack the notification and pass a different textMovement value
         textMovement = @(NSIllegalTextMovement);
         newUserInfo = @{@"NSTextMovement": textMovement};
-        notification = [NSNotification notificationWithName: notification.name
-                                                     object: notification.object
+        notification = [NSNotification notificationWithName: [notification name]
+                                                     object: [notification object]
                                                    userInfo: newUserInfo];
     }
-    
+
     [super textDidEndEditing: notification];
 }
 
@@ -72,19 +73,19 @@ static NSMutableDictionary *load_mutable_plist(NSString *path)
 {
     NSMutableDictionary *dict;
     NSString *error;
-    
+
     dict = [NSPropertyListSerialization
              propertyListFromData: [NSData dataWithContentsOfFile: path]
              mutabilityOption: NSPropertyListMutableContainersAndLeaves
              format: NULL
              errorDescription: &error];
-    
+
     if (!dict)
     {
         NSLog(@"libctl: cannot load plist: %@", error);
         dict = [[NSMutableDictionary alloc] init];
     }
-    
+
     return dict;
 }
 
@@ -92,7 +93,7 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 {
     NSData *plistData;
     NSString *error;
-    
+
     plistData = [NSPropertyListSerialization dataFromPropertyList: plist
                                                            format: NSPropertyListBinaryFormat_v1_0
                                                  errorDescription: &error];
@@ -109,28 +110,32 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 
 - (void) loadLibrary
 {
-    NSLog(@"libctl: loadLibrary");
-    
+    //NSLog(@"libctl: loadLibrary");
+
     /* in case we are called more than once... */
-    
-    homepath = [NSURL fileURLWithPath:(@"~/Library/Application Support/Spatterlight").stringByExpandingTildeInPath  isDirectory:YES];
+
+    NSError *error;
+    homepath = [[NSFileManager defaultManager] URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:&error];
+
+    homepath = [NSURL URLWithString: @"Spatterlight" relativeToURL:homepath];
+
     [[NSFileManager defaultManager] createDirectoryAtURL:homepath withIntermediateDirectories:YES attributes:NULL error:NULL];
-    
-    metadata = load_mutable_plist([homepath.path stringByAppendingPathComponent: @"Metadata.plist"]);
-    games = load_mutable_plist([homepath.path stringByAppendingPathComponent: @"Games.plist"]);
+
+    metadata = load_mutable_plist([[homepath path] stringByAppendingPathComponent: @"Metadata.plist"]);
+    games = load_mutable_plist([[homepath path] stringByAppendingPathComponent: @"Games.plist"]);
 }
 
 - (IBAction) saveLibrary: (id)sender
 {
     NSLog(@"libctl: saveLibrary");
-    
+
     int code;
-    
-    code = save_plist([homepath.path stringByAppendingPathComponent: @"Metadata.plist"], metadata);
+
+    code = save_plist([[homepath path] stringByAppendingPathComponent: @"Metadata.plist"], metadata);
     if (!code)
         NSLog(@"libctl: cannot write metadata!");
-    
-    code = save_plist([homepath.path stringByAppendingPathComponent: @"Games.plist"], games);
+
+    code = save_plist([[homepath path] stringByAppendingPathComponent: @"Games.plist"], games);
     if (!code)
         NSLog(@"libctl: cannot write game list!");
 }
@@ -138,22 +143,46 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 - (void) windowDidLoad
 {
     NSLog(@"libctl: windowDidLoad");
-    
-    self.windowFrameAutosaveName = @"LibraryWindow";
-    gameTableView.autosaveName = @"GameTable";
-    [gameTableView setAutosaveTableColumns: YES];
-    gameTableView.doubleAction = @selector(playGame:);
 
-    [self.window setExcludedFromWindowsMenu: YES];
-    [self.window registerForDraggedTypes:
+    [self setWindowFrameAutosaveName: @"LibraryWindow"];
+    [gameTableView setAutosaveName: @"GameTable"];
+    [gameTableView setAutosaveTableColumns: YES];
+
+    [gameTableView setAction:@selector(doClick:)];
+    [gameTableView setDoubleAction:@selector(doDoubleClick:)];
+    [gameTableView setTarget:self];
+
+    [[self window] setExcludedFromWindowsMenu: YES];
+    [[self window] registerForDraggedTypes:
      @[NSFilenamesPboardType]];
-    
+
     [infoButton setEnabled: NO];
     [playButton setEnabled: NO];
-    
+
     infoWindowIndex = 0;
-    
+
     gameTableModel = [[NSMutableArray alloc] init];
+
+    NSString *key;
+    NSSortDescriptor *sortDescriptor;
+
+    for (NSTableColumn *tableColumn in gameTableView.tableColumns)
+    {
+
+        key = tableColumn.identifier;
+        sortDescriptor = [NSSortDescriptor sortDescriptorWithKey:key ascending:YES];
+        [tableColumn setSortDescriptorPrototype:sortDescriptor];
+        
+        for (NSMenuItem *menuitem in _headerMenu.itemArray)
+        {
+            if ([[menuitem valueForKey:@"identifier"] isEqualToString:key]) 		
+            {
+                menuitem.state = !([tableColumn isHidden]);
+                break;
+            }
+        }
+    }
+
     gameTableDirty = YES;
     [self updateTableViews];
 }
@@ -208,37 +237,37 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 - (IBAction) importMetadata: (id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    panel.prompt = @"Import";
-    
+    [panel setPrompt: @"Import"];
+
     panel.allowedFileTypes = @[@"iFiction"];
-    
-    [panel beginSheetModalForWindow:self.window completionHandler:^(NSInteger result){
+
+    [panel beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result){
         if (result == NSFileHandlingPanelOKButton) {
-            NSURL* url = panel.URL;
-            
+            NSURL* url = [panel URL];
+
             [self beginImporting];
-            [self importMetadataFromFile: url.path];
+            [self importMetadataFromFile: [url path]];
             [self updateTableViews];
             [self endImporting];
         }
-        
+
     }];
 }
 
 - (IBAction) exportMetadata: (id)sender
 {
     NSSavePanel *panel = [NSSavePanel savePanel];
-    panel.accessoryView = exportTypeView;
+    [panel setAccessoryView: exportTypeView];
     panel.allowedFileTypes=@[@"iFiction"];
-    panel.prompt = @"Export";
-    panel.nameFieldStringValue = @"Interactive Fiction Metadata.iFiction";
-    
-    [panel beginSheetModalForWindow:self.window completionHandler:^(NSInteger result){
+    [panel setPrompt: @"Export"];
+    [panel setNameFieldStringValue:@"Interactive Fiction Metadata.iFiction"];
+
+    [panel beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result){
         if (result == NSFileHandlingPanelOKButton)
         {
-            NSURL* url = panel.URL;
-            
-            [self exportMetadataToFile: url.path what: exportTypeControl.indexOfSelectedItem];
+            NSURL* url = [panel URL];
+
+            [self exportMetadataToFile: [url path] what: [exportTypeControl indexOfSelectedItem]];
         }
     }];
 }
@@ -248,15 +277,15 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     [panel setAllowsMultipleSelection: YES];
     [panel setCanChooseDirectories: YES];
-    panel.prompt = @"Add";
-    
+    [panel setPrompt: @"Add"];
+
     panel.allowedFileTypes=gGameFileTypes;
-    
-    [panel beginSheetModalForWindow:self.window completionHandler:^(NSInteger result){
+
+    [panel beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result){
         if (result == NSFileHandlingPanelOKButton)
         {
-            NSArray* urls = panel.URLs;
-            
+            NSArray* urls = [panel URLs];
+
             [self beginImporting];
             [self addFiles: urls];
             [self endImporting];
@@ -264,10 +293,11 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
     }];
 }
 
+#pragma mark Contextual menu
 
 - (IBAction) playGame: (id)sender
 {
-    NSInteger rowidx = gameTableView.selectedRow;
+    NSInteger rowidx = [gameTableView selectedRow];
     if (rowidx >= 0)
     {
         NSString *ifid = gameTableModel[rowidx];
@@ -277,14 +307,14 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 
 - (IBAction) showGameInfo: (id)sender
 {
-    NSIndexSet *rows = gameTableView.selectedRowIndexes;
+    NSIndexSet *rows = [gameTableView selectedRowIndexes];
     NSInteger i;
-    for (i = rows.firstIndex; i != NSNotFound; i = [rows indexGreaterThanIndex: i])
+    for (i = [rows firstIndex]; i != NSNotFound; i = [rows indexGreaterThanIndex: i])
     {
         NSString *ifid = gameTableModel[i];
         NSString *path = games[ifid];
         NSDictionary *info = metadata[ifid];
-        
+
         if (![[NSFileManager defaultManager] fileExistsAtPath: path])
         {
             NSRunAlertPanel(@"Cannot find the file.",
@@ -315,31 +345,38 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 
 - (IBAction) revealGameInFinder: (id)sender
 {
-    NSIndexSet *rows = gameTableView.selectedRowIndexes;
+    NSIndexSet *rows = [gameTableView selectedRowIndexes];
     NSInteger i;
-    for (i = rows.firstIndex; i != NSNotFound; i = [rows indexGreaterThanIndex: i])
+    for (i = [rows firstIndex]; i != NSNotFound; i = [rows indexGreaterThanIndex: i])
     {
         NSString *ifid = gameTableModel[i];
         NSString *path = games[ifid];
+        if (![[NSFileManager defaultManager] fileExistsAtPath: path])
+        {
+            NSRunAlertPanel(@"Cannot find the file.",
+                            @"The file could not be found at its original location. Maybe it has been moved since it was added to the library.",
+                            @"Okay", NULL, NULL);
+            return;
+        }
         [[NSWorkspace sharedWorkspace] selectFile: path inFileViewerRootedAtPath: @""];
     }
 }
 
 - (IBAction) deleteGame: (id)sender
 {
-    NSIndexSet *rows = gameTableView.selectedRowIndexes;
-    if (rows.count > 0)
+    NSIndexSet *rows = [gameTableView selectedRowIndexes];
+    if ([rows count] > 0)
     {
         NSString *ifid;
         NSInteger i;
-        
-        for (i = rows.firstIndex; i != NSNotFound; i = [rows indexGreaterThanIndex: i])
+
+        for (i = [rows firstIndex]; i != NSNotFound; i = [rows indexGreaterThanIndex: i])
         {
             ifid = gameTableModel[i];
             NSLog(@"libctl: delete game %@", ifid);
             [games removeObjectForKey: ifid];
         }
-        
+
         gameTableDirty = YES;
         [self updateTableViews];
     }
@@ -352,24 +389,31 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 
 - (BOOL) validateMenuItem: (NSMenuItem *)menuItem
 {
-    SEL action = menuItem.action;
-    NSInteger count = gameTableView.numberOfSelectedRows;
-    
+    SEL action = [menuItem action];
+    NSInteger count = [gameTableView numberOfSelectedRows];
+
+    if (action == @selector(performFindPanelAction:))
+    {
+        if (menuItem.tag == NSTextFinderActionShowFindInterface)
+            return YES;
+        else return NO;
+    }
+
     if (action == @selector(delete:))
         return count > 0;
-    
+
     if (action == @selector(deleteGame:))
         return count > 0;
-    
+
     if (action == @selector(revealGameInFinder:))
         return count > 0;
-    
+
     if (action == @selector(showGameInfo:))
         return count > 0;
-    
+
     if (action == @selector(playGame:))
         return count == 1;
-    
+
     return YES;
 }
 
@@ -380,29 +424,29 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 - (NSDragOperation) draggingEntered:sender
 {
     extern NSString *terp_for_filename(NSString *path);
-    
+
     NSFileManager *mgr = [NSFileManager defaultManager];
     BOOL isdir;
     NSInteger i;
-    
+
     NSPasteboard *pboard = [sender draggingPasteboard];
-    if ([pboard.types containsObject: NSFilenamesPboardType])
+    if ([[pboard types] containsObject: NSFilenamesPboardType])
     {
         NSArray *paths = [pboard propertyListForType: NSFilenamesPboardType];
-        NSInteger count = paths.count;
+        NSInteger count = [paths count];
         for (i = 0; i < count; i++)
         {
             NSString *path = paths[i];
-            if ([gGameFileTypes containsObject: path.pathExtension.lowercaseString])
+            if ([gGameFileTypes containsObject: [[path pathExtension] lowercaseString]])
                 return NSDragOperationCopy;
-            if ([path.pathExtension isEqualToString: @"iFiction"])
+            if ([[path pathExtension] isEqualToString: @"iFiction"])
                 return NSDragOperationCopy;
             if ([mgr fileExistsAtPath: path isDirectory: &isdir])
                 if (isdir)
                     return NSDragOperationCopy;
         }
     }
-    
+
     return NSDragOperationNone;
 }
 
@@ -419,7 +463,7 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 - (BOOL) performDragOperation:(id <NSDraggingInfo>)sender
 {
     NSPasteboard *pboard = [sender draggingPasteboard];
-    if ([pboard.types containsObject: NSFilenamesPboardType])
+    if ([[pboard types] containsObject: NSFilenamesPboardType])
     {
         NSArray *files = [pboard propertyListForType: NSFilenamesPboardType];
         NSMutableArray *urls = [[NSMutableArray alloc] initWithCapacity:files.count];
@@ -434,6 +478,11 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
     return NO;
 }
 
+- (void) performFindPanelAction:(id<NSValidatedUserInterfaceItem>)sender
+{
+    [_searchField selectText:self];
+}
+
 
 /*
  * Metadata is not tied to games in the library.
@@ -444,12 +493,12 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
 
 - (void) addMetadata: (NSMutableDictionary*)dict forIFIDs: (NSArray*)list
 {
-    NSInteger count = list.count;
+    NSInteger count = [list count];
     NSInteger i;
-    
+
     if (cursrc == 0)
         NSLog(@"libctl: current metadata source failed...");
-    
+
     for (i = 0; i < count; i++)
     {
         NSString *ifid = list[i];
@@ -457,7 +506,7 @@ static BOOL save_plist(NSString *path, NSDictionary *plist)
         if (entry)
         {
             NSNumber *oldsrcv = entry[kSource];
-            int oldsrc = oldsrcv.intValue;
+            int oldsrc = [oldsrcv intValue];
             if (cursrc >= oldsrc)
             {
                 dict[kSource] = @((int)cursrc);
@@ -491,7 +540,7 @@ static void read_xml_text(const char *rp, char *wp)
     /* kill initial whitespace */
     while (*rp && isspace(*rp))
         rp++;
-    
+
     while (*rp)
     {
         if (*rp == '<')
@@ -503,7 +552,7 @@ static void read_xml_text(const char *rp, char *wp)
                 rp += 5;
                 if (*rp == '>')
                     rp ++;
-                
+
                 /* kill trailing whitespace */
                 while (*rp && isspace(*rp))
                     rp++;
@@ -546,14 +595,14 @@ static void read_xml_text(const char *rp, char *wp)
             *wp++ = *rp++;
         }
     }
-    
+
     *wp = 0;
 }
 
 - (void) handleXMLCloseTag: (struct XMLTag *)tag
 {
     char bigbuf[4096];
-    
+
     /* we don't parse tags after bibliographic until the next story begins... */
     if (!strcmp(tag->tag, "bibliographic"))
     {
@@ -562,7 +611,7 @@ static void read_xml_text(const char *rp, char *wp)
         ifidbuf = nil;
         metabuf = nil;
     }
-    
+
     /* we should only find ifid:s inside the <identification> tag, */
     /* which should be the first tag in a <story> */
     else if (!strcmp(tag->tag, "ifid"))
@@ -577,20 +626,20 @@ static void read_xml_text(const char *rp, char *wp)
         [ifidbuf addObject: @(tag->begin)];
         *tag->end = save;
     }
-    
+
     /* only extract text from within the indentification and bibliographic tags */
     else if (metabuf)
     {
         if (tag->end - tag->begin >= sizeof(bigbuf) - 1)
             return;
-        
+
         char save = *tag->end;
         *tag->end = 0;
         read_xml_text(tag->begin, bigbuf);
         *tag->end = save;
-        
+
         NSString *val = @(bigbuf);
-        
+
         if (!strcmp(tag->tag, "format"))
             metabuf[@"format"] = val;
         if (!strcmp(tag->tag, "bafn"))
@@ -646,18 +695,18 @@ static void handleXMLError(char *msg, void *ctx)
 - (BOOL) importMetadataFromFile: (NSString*)filename
 {
     NSLog(@"libctl: importMetadataFromFile %@", filename);
-    
+
     NSMutableData *data;
-    
+
     data = [NSMutableData dataWithContentsOfFile: filename];
     if (!data)
         return NO;
     [data appendBytes: "\0" length: 1];
-    
+
     cursrc = kExternal;
-    [self importMetadataFromXML: data.mutableBytes];
+    [self importMetadataFromXML: [data mutableBytes]];
     cursrc = 0;
-    
+
     return YES;
 }
 
@@ -666,14 +715,14 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
     NSString *val;
     const char *tagname;
     const char *s;
-    
+
     val = info[key];
     if (!val)
         return;
-    
-    tagname = key.UTF8String;
-    s = val.UTF8String;
-    
+
+    tagname = [key UTF8String];
+    s = [val UTF8String];
+
     fprintf(fp, "<%s>", tagname);
     while (*s)
     {
@@ -708,18 +757,18 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
     //NSString *key, *val;
     NSDictionary *info;
     int src;
-    
+
     NSLog(@"libctl: exportMetadataToFile %@", filename);
-    
+
     FILE *fp;
-    
-    fp = fopen(filename.UTF8String, "w");
+
+    fp = fopen([filename UTF8String], "w");
     if (!fp)
         return NO;
-    
+
     fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     fprintf(fp, "<ifindex version=\"1.0\">\n\n");
-    
+
     if (what == X_EDITED || what == X_DATABASE)
         enumerator = [metadata keyEnumerator];
     else
@@ -731,15 +780,15 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
         if ((what == X_EDITED && src >= kUser) || what != X_EDITED)
         {
             fprintf(fp, "<story>\n");
-            
+
             fprintf(fp, "<identification>\n");
-            fprintf(fp, "<ifid>%s</ifid>\n", ifid.UTF8String);
+            fprintf(fp, "<ifid>%s</ifid>\n", [ifid UTF8String]);
             write_xml_text(fp, info, @"format");
             write_xml_text(fp, info, @"bafn");
             fprintf(fp, "</identification>\n");
-            
+
             fprintf(fp, "<bibliographic>\n");
-            
+
             write_xml_text(fp, info, @"title");
             write_xml_text(fp, info, @"author");
             write_xml_text(fp, info, @"language");
@@ -751,14 +800,14 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
             write_xml_text(fp, info, @"seriesnumber");
             write_xml_text(fp, info, @"forgiveness");
             write_xml_text(fp, info, @"description");
-            
+
             fprintf(fp, "</bibliographic>\n");
             fprintf(fp, "</story>\n\n");
         }
     }
-    
+
     fprintf(fp, "</ifindex>\n");
-    
+
     fclose(fp);
     return YES;
 }
@@ -775,9 +824,9 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
     NSDictionary *info = metadata[ifid];
     NSString *path = games[ifid];
     NSString *terp;
-    
+
     NSLog(@"playgame %@ %@", ifid, info);
-    
+
     if (![[NSFileManager defaultManager] fileExistsAtPath: path])
     {
         NSRunAlertPanel(@"Cannot find the file.",
@@ -785,7 +834,7 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
                         @"Okay", NULL, NULL);
         return;
     }
-    
+
     if (![[NSFileManager defaultManager] isReadableFileAtPath: path])
     {
         NSRunAlertPanel(@"Cannot read the file.",
@@ -793,11 +842,11 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
                         @"Okay", NULL, NULL);
         return;
     }
-    
-    terp = gExtMap[path.pathExtension];
+
+    terp = gExtMap[[path pathExtension]];
     if (!terp)
         terp = gFormatMap[info[@"format"]];
-    
+
     if (!terp)
     {
         NSRunAlertPanel(@"Cannot play the file.",
@@ -805,11 +854,13 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
                         @"Okay", NULL, NULL);
         return;
     }
-    
+
     gctl = [[GlkController alloc] initWithWindowNibName: @"GameWindow"];
     [gctl runTerp:terp withGameFile:path IFID:ifid info:info];
     [gctl showWindow: self];
-    
+
+    [self addURLtoRecents: [NSURL fileURLWithPath:path]];
+
     // gctl releases itself when the game closes
 }
 
@@ -817,7 +868,7 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
 {
     NSEnumerator *enumerator;
     NSString *ifid;
-    
+
     enumerator = [games keyEnumerator];
     while ((ifid = [enumerator nextObject]))
     {
@@ -827,7 +878,7 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
             return;
         }
     }
-    
+
     ifid = [self importGame: path reportFailure: YES];
     if (ifid)
     {
@@ -847,14 +898,14 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
     char *s;
     int mdlen;
     int rv;
-    
-    if ([path.pathExtension.lowercaseString isEqualToString: @"ifiction"])
+
+    if ([[[path pathExtension] lowercaseString] isEqualToString: @"ifiction"])
     {
         [self importMetadataFromFile: path];
         return nil;
     }
-    
-    if ([path.pathExtension.lowercaseString isEqualToString: @"d$$"])
+
+    if ([[[path pathExtension] lowercaseString] isEqualToString: @"d$$"])
     {
         path = [self convertAGTFile: path];
         if (!path)
@@ -866,8 +917,8 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
             return nil;
         }
     }
-    
-    if (![gGameFileTypes containsObject: path.pathExtension.lowercaseString])
+
+    if (![gGameFileTypes containsObject: [[path pathExtension] lowercaseString]])
     {
         if (report)
             NSRunAlertPanel(@"Unknown file format.",
@@ -875,8 +926,8 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
                             @"Okay", NULL, NULL);
         return nil;
     }
-    
-    format = babel_init((char*)path.UTF8String);
+
+    format = babel_init((char*)[path UTF8String]);
     if (!format || !babel_get_authoritative())
     {
         if (report)
@@ -886,10 +937,10 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
         babel_release();
         return nil;
     }
-    
+
     s = strchr(format, ' ');
     if (s) format = s+1;
-    
+
     rv = babel_treaty(GET_STORY_FILE_IFID_SEL, buf, sizeof buf);
     if (rv <= 0)
     {
@@ -900,13 +951,13 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
         babel_release();
         return nil;
     }
-    
+
     s = strchr(buf, ',');
     if (s) *s = 0;
     ifid = @(buf);
-    
+
     NSLog(@"libctl: import game %@ (%s)", path, format);
-    
+
     mdlen = babel_treaty(GET_STORY_FILE_METADATA_EXTENT_SEL, NULL, 0);
     if (mdlen > 0)
     {
@@ -920,7 +971,7 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
             babel_release();
             return nil;
         }
-        
+
         rv = babel_treaty(GET_STORY_FILE_METADATA_SEL, mdbuf, mdlen);
         if (rv > 0)
         {
@@ -928,10 +979,10 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
             [self importMetadataFromXML: mdbuf];
             cursrc = 0;
         }
-        
+
         free(mdbuf);
     }
-    
+
     dict = metadata[ifid];
     if (!dict)
     {
@@ -940,17 +991,20 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
         [self addMetadata: dict forIFIDs: @[ifid]];
         cursrc = 0;
     }
-    
+
     if (!dict[@"format"])
         dict[@"format"] = @(format);
     if (!dict[@"title"])
-        dict[@"title"] = path.lastPathComponent;
-    
+        dict[@"title"] = [path lastPathComponent];
+
     babel_release();
-    
+
     games[ifid] = path;
+
+    [self addURLtoRecents: [NSURL fileURLWithPath:path]];
+
     gameTableDirty = YES;
-    
+
     return ifid;
 }
 
@@ -967,15 +1021,15 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
     BOOL isdir;
     NSInteger count;
     NSInteger i;
-    
-    count = urls.count;
+
+    count = [urls count];
     for (i = 0; i < count; i++)
     {
         NSString *path = [urls[i] path];
-        
+
         if (![filemgr fileExistsAtPath: path isDirectory: &isdir])
             continue;
-        
+
         if (isdir)
         {
             NSArray *contents = [filemgr contentsOfDirectoryAtURL:urls[i]
@@ -995,18 +1049,18 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
 {
     NSInteger count;
     NSInteger i;
-    
+
     NSLog(@"libctl: adding %lu files", (unsigned long)urls.count);
-    
+
     NSMutableArray *select = [NSMutableArray arrayWithCapacity: urls.count];
-    
+
     [self deselectGames];
-    
+
     [self addFiles: urls select: select];
-    
+
     [self updateTableViews];
-    
-    count = select.count;
+
+    count = [select count];
     for (i = 0; i < count; i++)
         [self selectGameWithIFID: select[i]];
 }
@@ -1016,20 +1070,44 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
     [self addFiles: @[url]];
 }
 
-/*
- * Table magic
- */
+
+#pragma mark -
+#pragma mark Table magic
 
 - (IBAction) searchForGames: (id)sender
 {
     NSString *value = [sender stringValue];
     searchStrings = nil;
-    
-    if (value.length)
+
+    if ([value length])
         searchStrings = [value componentsSeparatedByString: @" "];
-    
+
     gameTableDirty = YES;
     [self updateTableViews];
+}
+
+- (IBAction)toggleColumn:(id)sender
+{
+	NSMenuItem *item = (NSMenuItem *)sender;
+	NSTableColumn * column;
+	for (NSTableColumn *tableColumn in gameTableView.tableColumns)
+	{
+		if ([tableColumn.identifier isEqualToString:[item valueForKey:@"identifier"]])
+		{
+			column = tableColumn;
+			break;
+		}
+	}
+	if (item.state == YES)
+	{
+		[column setHidden:YES];
+		item.state = NO;
+	}
+	else
+	{
+		[column setHidden:NO];
+		item.state = YES;
+	}
 }
 
 - (void) deselectGames
@@ -1040,7 +1118,7 @@ static void write_xml_text(FILE *fp, NSDictionary *info, NSString *key)
 - (void) selectGameWithIFID: (NSString*)ifid
 {
     NSInteger i, count;
-    count = gameTableModel.count;
+    count = [gameTableModel count];
     NSMutableIndexSet *indexSet = [NSMutableIndexSet indexSet];
 
     for (i = 0; i < count; i++)
@@ -1063,40 +1141,19 @@ static NSInteger Strcmp(NSString *a, NSString *b)
         a = [a substringFromIndex: 4];
     if ([b hasPrefix: @"The "] || [b hasPrefix: @"the "])
         b = [b substringFromIndex: 4];
-    return [a caseInsensitiveCompare: b];
+    return [a localizedCaseInsensitiveCompare: b];
 }
 
-static NSInteger compareDicts(NSDictionary * a, NSDictionary * b, id key)
+static NSInteger compareDicts(NSDictionary * a, NSDictionary * b, id key, BOOL ascending)
 {
     NSString * ael = [a[key] description];
     NSString * bel = [b[key] description];
-    if ((!ael || ael.length == 0) && (!bel || bel.length == 0))
-        return 0;
-    if (!ael || ael.length == 0) return 1;
-    if (!bel || bel.length == 0) return -1;
+    if ((!ael || [ael length] == 0) && (!bel || [bel length] == 0))
+        return NSOrderedSame;
+    if (!ael || [ael length] == 0) return ascending ? NSOrderedDescending :  NSOrderedAscending;;
+    if (!bel || [bel length] == 0) return ascending ? NSOrderedAscending : NSOrderedDescending;
+;
     return Strcmp(ael, bel);
-}
-
-static NSInteger compareGames(NSString *aid, NSString *bid, void *ctx)
-{
-    LibController *self = (__bridge LibController *)(ctx);
-    NSDictionary *a = self->metadata[aid];
-    NSDictionary *b = self->metadata[bid];
-    NSInteger cmp;
-    if (self->gameSortColumn)
-    {
-        cmp = compareDicts(a, b, self->gameSortColumn);
-        if (cmp) return cmp;
-    }
-    cmp = compareDicts(a, b, @"title");
-    if (cmp) return cmp;
-    cmp = compareDicts(a, b, @"author");
-    if (cmp) return cmp;
-    cmp = compareDicts(a, b, @"seriesnumber");
-    if (cmp) return cmp;
-    cmp = compareDicts(a, b, @"firstpublished");
-    if (cmp) return cmp;
-    return compareDicts(a, b, @"format");
 }
 
 - (void) updateTableViews
@@ -1111,22 +1168,22 @@ static NSInteger compareGames(NSString *aid, NSString *bid, void *ctx)
     NSInteger count;
     NSInteger found;
     NSInteger i;
-    
+
     if (!gameTableDirty)
         return;
-    
+
     selifid = nil;
-    selrow = gameTableView.selectedRow;
+    selrow = [gameTableView selectedRow];
     if (selrow >= 0)
         selifid = gameTableModel[selrow];
-    
+
     [gameTableModel removeAllObjects];
-    
+
     if (searchStrings)
-        searchcount = searchStrings.count;
+        searchcount = [searchStrings count];
     else
         searchcount = 0;
-    
+
     enumerator = [games keyEnumerator];
     while ((ifid = [enumerator nextObject]))
     {
@@ -1159,16 +1216,39 @@ static NSInteger compareGames(NSString *aid, NSString *bid, void *ctx)
         }
     }
     
-    [gameTableModel sortUsingFunction: compareGames context: (__bridge void * _Nullable)(self)];
-    [gameTableView reloadData];
+    NSSortDescriptor *sort = [NSSortDescriptor sortDescriptorWithKey:@"self" ascending:sortAscending comparator:^(NSString *aid, NSString *bid) {
+        
+        NSDictionary *a = metadata[aid];
+        NSDictionary *b = metadata[bid];
+        NSInteger cmp;
+       
+        if (gameSortColumn)
+        {
+            cmp = compareDicts(a, b, gameSortColumn, sortAscending);
+            if (cmp) return cmp;
+        }
+        cmp = compareDicts(a, b, @"title", sortAscending);
+        if (cmp) return cmp;
+        cmp = compareDicts(a, b, @"author", sortAscending);
+        if (cmp) return cmp;
+        cmp = compareDicts(a, b, @"seriesnumber",sortAscending);
+        if (cmp) return cmp;
+        cmp = compareDicts(a, b, @"firstpublished",sortAscending);
+        if (cmp) return cmp;
+        return compareDicts(a, b, @"format", sortAscending);
+    }];
     
+    [gameTableModel sortUsingDescriptors:@[sort]];
+
+    [gameTableView reloadData];
+
     [gameTableView deselectAll: self];
     count = gameTableModel.count;
 
     NSMutableIndexSet *indexSet = [NSMutableIndexSet indexSet];
 
     for (i = 0; i < count; i++)
-        if (gameTableModel[i] == selifid)
+        [gameTableView setDoubleAction: @selector(playGame:)];
             [indexSet addIndex:i];
 
     [gameTableView selectRowIndexes:indexSet byExtendingSelection:NO];
@@ -1176,21 +1256,24 @@ static NSInteger compareGames(NSString *aid, NSString *bid, void *ctx)
     gameTableDirty = NO;
 }
 
-- (void) tableView: (NSTableView*)tableView
-didClickTableColumn: (NSTableColumn*)tableColumn
+- (void)tableView:(NSTableView *)tableView sortDescriptorsDidChange:(NSArray *)oldDescriptors
 {
     if (tableView == gameTableView)
     {
-        gameSortColumn = tableColumn.identifier;
-        gameTableView.highlightedTableColumn = tableColumn;
+        NSSortDescriptor *sortDescriptor = (tableView.sortDescriptors)[0];
+        if (!sortDescriptor)
+            return;
+        gameSortColumn = sortDescriptor.key;
+        sortAscending = sortDescriptor.ascending;
         gameTableDirty = YES;
         [self updateTableViews];
     }
 }
+
 - (NSInteger) numberOfRowsInTableView: (NSTableView*)tableView
 {
     if (tableView == gameTableView)
-        return gameTableModel.count;
+        return [gameTableModel count];
     return 0;
 }
 
@@ -1202,9 +1285,9 @@ objectValueForTableColumn: (NSTableColumn*)column
     {
         NSString *gameifid = gameTableModel[row];
         NSDictionary *gamemeta = metadata[gameifid];
-        return gamemeta[column.identifier];
+        return gamemeta[[column identifier]];
     }
-    
+
     return nil;
 }
 
@@ -1217,9 +1300,9 @@ objectValueForTableColumn: (NSTableColumn*)column
     {
         NSString *ifid = gameTableModel[row];
         NSDictionary *info = metadata[ifid];
-        NSString *key = tableColumn.identifier;
+        NSString *key = [tableColumn identifier];
         NSString *oldval = info[key];
-        if (oldval == nil && ((NSString*)value).length == 0)
+        if (oldval == nil && [(NSString*)value length] == 0)
             return;
         if ([value isEqualTo: oldval])
             return;
@@ -1230,13 +1313,83 @@ objectValueForTableColumn: (NSTableColumn*)column
 - (void) tableViewSelectionDidChange: (id)notification
 {
     NSTableView *tableView = [notification object];
-    NSIndexSet *rows = tableView.selectedRowIndexes;
+    NSIndexSet *rows = [tableView selectedRowIndexes];
     if (tableView == gameTableView)
     {
-        infoButton.enabled = rows.count > 0;
-        playButton.enabled = rows.count == 1;
+        [infoButton setEnabled: [rows count] > 0];
+        [playButton setEnabled: [rows count] == 1];
     }
 }
+
+#pragma mark -
+#pragma mark Add to Open Recent menu stuff
+
+
+- (void) addURLtoRecents: (NSURL *) url
+{
+    [((AppDelegate*)[[NSApplication sharedApplication] delegate]) addToRecents:@[url]];
+
+}
+
+#pragma mark -
+#pragma mark Open game on double click, edit on click and wait
+
+-(void)doClick:(id)sender {
+//    NSLog(@"doClick:");
+    if (canEdit) {
+        NSInteger row = [gameTableView clickedRow];
+        if (row >= 0) {
+            [self startTimerWithTimeInterval:0.5 selector:@selector(renameByTimer:)];
+        }
+    }
+}
+
+// DoubleAction
+-(void)doDoubleClick:(id)sender {
+//    NSLog(@"doDoubleClick:");
+    [self enableClickToRenameAfterDelay];
+    [self playGame:sender];
+}
+
+-(void)enableClickToRenameAfterDelay {
+    canEdit = NO;
+    [self startTimerWithTimeInterval:0.2
+                            selector:@selector(enableClickToRenameByTimer:)];
+}
+
+-(void)enableClickToRenameByTimer:(id)sender {
+    //NSLog(@"enableClickToRenameByTimer:");
+    canEdit = YES;
+}
+
+-(void)renameByTimer:(id)sender {
+    if (canEdit) {
+        NSInteger row = [gameTableView selectedRow];
+        NSInteger column = [gameTableView selectedColumn];
+
+        if (row != -1 && column != -1) {
+            [gameTableView editColumn:column row:row withEvent:nil select:YES];
+        }
+    }
+}
+
+-(void)startTimerWithTimeInterval:(NSTimeInterval)seconds selector:(SEL)selector {
+    [self stopTimer];
+    timer = [NSTimer scheduledTimerWithTimeInterval:seconds
+                                             target:self
+                                           selector:selector
+                                           userInfo:nil
+                                            repeats:NO];
+}
+
+-(void)stopTimer {
+    if (timer != nil) {
+        if ([timer isValid]) {
+            [timer invalidate];
+        }
+    }
+}
+
 
 /*
  * Some stuff that doesn't really fit anywhere else.
@@ -1246,27 +1399,27 @@ objectValueForTableColumn: (NSTableColumn*)column
 {
     NSLog(@"libctl: converting agt to agx");
     char rapeme[] = "/tmp/cugelcvtout.agx"; /* babel will clobber this, so we can't send a const string */
-    
+
     NSString *exepath = [[NSBundle mainBundle] pathForAuxiliaryExecutable: @"agt2agx"];
     NSString *dirpath;
     NSString *cvtpath;
     NSTask *task;
     char *format;
     int status;
-    
+
     task = [[NSTask alloc] init];
-    task.launchPath = exepath;
-    task.arguments = @[@"-o", @"/tmp/cugelcvtout.agx", origpath];
+    [task setLaunchPath: exepath];
+    [task setArguments: @[@"-o", @"/tmp/cugelcvtout.agx", origpath]];
     [task launch];
     [task waitUntilExit];
-    status = task.terminationStatus;
-    
+    status = [task terminationStatus];
+
     if (status != 0)
     {
         NSLog(@"libctl: agt2agx failed");
         return nil;
     }
-    
+
     format = babel_init(rapeme);
     if (!strcmp(format, "agt"))
     {
@@ -1274,25 +1427,25 @@ objectValueForTableColumn: (NSTableColumn*)column
         int rv = babel_treaty(GET_STORY_FILE_IFID_SEL, buf, sizeof buf);
         if (rv == 1)
         {
-            dirpath = [homepath.path stringByAppendingPathComponent: @"Converted"];
-            
+            dirpath = [[homepath path] stringByAppendingPathComponent: @"Converted"];
+
             [[NSFileManager defaultManager] createDirectoryAtURL:[NSURL fileURLWithPath:dirpath isDirectory:YES] withIntermediateDirectories:YES attributes:nil error:NULL];
-            
+
             cvtpath =
             [dirpath stringByAppendingPathComponent:
              [@(buf)
               stringByAppendingPathExtension: @"agx"]];
-            
+
             babel_release();
-            
+
             NSURL *url = [NSURL fileURLWithPath:cvtpath];
-            
+
             [[NSFileManager defaultManager]  removeItemAtURL: url error: nil];
-            
+
             status = [[NSFileManager defaultManager] moveItemAtPath: @"/tmp/cugelcvtout.agx"
                                                              toPath: cvtpath
                                                               error: nil];
-            
+
             if (!status)
             {
                 NSLog(@"libctl: could not move converted file");
@@ -1306,7 +1459,7 @@ objectValueForTableColumn: (NSTableColumn*)column
         NSLog(@"libctl: babel did not like the converted file");
     }
     babel_release();
-    
+
     return nil;
 }
 

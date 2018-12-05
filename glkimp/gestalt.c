@@ -65,9 +65,8 @@ glui32 glk_gestalt_ext(glui32 id, glui32 val, glui32 *arr,
             
         case gestalt_Graphics:
         case gestalt_GraphicsTransparency:
-            return gli_enable_graphics;;
         case gestalt_GraphicsCharInput:
-            return FALSE;
+            return gli_enable_graphics;
             
         case gestalt_DrawImage:
             if (val == wintype_Graphics)
@@ -80,9 +79,8 @@ glui32 glk_gestalt_ext(glui32 id, glui32 val, glui32 *arr,
         case gestalt_SoundVolume:
         case gestalt_SoundNotify:
         case gestalt_SoundMusic:
-            return gli_enable_sound;
         case gestalt_Sound2:
-            return FALSE;
+            return gli_enable_sound;
             
         case gestalt_Unicode:
             return TRUE;
@@ -90,14 +88,14 @@ glui32 glk_gestalt_ext(glui32 id, glui32 val, glui32 *arr,
             return TRUE;
 
         case gestalt_Hyperlinks:
-            return FALSE;
+            return TRUE;
         case gestalt_HyperlinkInput:
-            return FALSE;
+            return TRUE;
 
         case gestalt_LineInputEcho:
             return TRUE;
         case gestalt_LineTerminators:
-            return FALSE;
+            return TRUE;
         case gestalt_LineTerminatorKey:
             return gli_window_check_terminator(val);
 

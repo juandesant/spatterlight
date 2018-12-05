@@ -7,7 +7,7 @@
     NSInteger rows, cols;
     NSInteger xpos, ypos;
     NSInteger line_request;
-    NSInteger char_request;
+	NSInteger hyper_request;
     NSInteger mouse_request;
     BOOL dirty;
     NSInteger transparent;

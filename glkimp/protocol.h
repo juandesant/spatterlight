@@ -19,12 +19,12 @@ void readmsg(struct message *msgbuf, char *buf);
 enum
 {
     NOREPLY,
-    
+
     OKAY,
     ERROR,
-    
+
     HELLO,
-    
+
     PROMPTOPEN,
     PROMPTSAVE,
     NEWWIN,
@@ -39,23 +39,24 @@ enum
     STYLEMEASURE,
     SETBGND,
     SETTITLE,
-    
+
     TIMER,
     INITCHAR,
     CANCELCHAR,
     INITLINE,
     CANCELLINE,
     SETECHO,
+	TERMINATORS,
     INITMOUSE,
     CANCELMOUSE,
-    
+
     FILLRECT,
     FINDIMAGE,
     LOADIMAGE,
     SIZEIMAGE,
     DRAWIMAGE,
     FLOWBREAK,
-    
+
     NEWCHAN,
     DELCHAN,
     FINDSOUND,
@@ -63,15 +64,10 @@ enum
     SETVOLUME,
     PLAYSOUND,
     STOPSOUND,
-
-#ifdef GLK_MODULE_HYPERLINKS
-
     SETLINK,
     INITLINK,
     CANCELLINK,
-
-#endif
-    
+    EVTHYPER,
     NEXTEVENT,
     EVTARRANGE,
     EVTLINE,
@@ -79,7 +75,7 @@ enum
     EVTMOUSE,
     EVTTIMER,
     EVTSOUND,
-    EVTHYPER,
-    
+	EVTVOLUME,
+
     EVTPREFS
 };

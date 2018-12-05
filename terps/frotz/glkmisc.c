@@ -108,7 +108,7 @@ void os_process_arguments(int argc, char *argv[])
 {
 	int c;
 
-#ifdef GARGLK
+#if defined(GARGLK) || defined(SPATTERLIGHT)
 	garglk_set_program_name("Frotz " VERSION);
 	garglk_set_program_info(
 			"Glk Frotz " VERSION "\n"
@@ -163,17 +163,16 @@ void os_process_arguments(int argc, char *argv[])
 	}
 	else
 	{
-		char *s;
-
 		story_name = argv[zoptind++];
 		if (zoptind < argc)
 			graphics_filename = argv[zoptind++];
 
-		#ifdef GARGLK
+#if defined(GARGLK) || defined(SPATTERLIGHT)
+		char *s;
 		s = strrchr(story_name, '\\');
 		if (!s) s = strrchr(story_name, '/');
 		garglk_set_story_name(s ? s + 1 : story_name);
-		#endif
+#endif
 	}
 }
 

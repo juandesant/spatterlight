@@ -18,18 +18,18 @@ NSDictionary *gFormatMap;
 
 - (void) awakeFromNib
 {
-    NSLog(@"appdel: awakeFromNib");
-    
+    //NSLog(@"appdel: awakeFromNib");
+
     gGameFileTypes = @[@"d$$", @"dat", @"sna",
                       @"advsys", @"quill",
                       @"l9", @"mag", @"a3c", @"acd", @"agx", @"gam", @"t3", @"hex", @"taf",
                       @"z3", @"z4", @"z5", @"z7", @"z8", @"ulx",
                       @"blb", @"blorb", @"glb", @"gblorb", @"zlb", @"zblorb"];
-    
+
     gExtMap = @{@"acd": @"alan2",
                @"a3c": @"alan3",
                @"d$$": @"agility"};
-    
+
     gFormatMap = @{@"adrift": @"scare",
                   @"advsys": @"advsys",
                   @"agt": @"agility",
@@ -41,7 +41,9 @@ NSDictionary *gFormatMap;
                   @"tads2": @"tadsr",
                   @"tads3": @"tadsr",
                   @"zcode": @"frotz"};
-    
+
+    addToRecents = YES;
+
     prefctl = [[Preferences alloc] initWithWindowNibName: @"PrefsWindow"];
     libctl = [[LibController alloc] initWithWindowNibName: @"LibraryWindow"];
     [libctl loadLibrary];
@@ -61,11 +63,26 @@ NSDictionary *gFormatMap;
 
 - (IBAction) showHelpFile: (id)sender
 {
-    NSLog(@"appdel: showHelpFile('%@')", [sender title]);
+//    NSLog(@"appdel: showHelpFile('%@')", [sender title]);
     id title = [sender title];
     id pathname = [NSBundle mainBundle].resourcePath;
     id filename = [NSString stringWithFormat: @"%@/docs/%@.rtf", pathname, title];
-    [[NSWorkspace sharedWorkspace] openFile: filename];
+
+    NSURL *url = [NSURL fileURLWithPath:filename];
+    NSError *error;
+
+    if (!helpLicenseWindow)
+    {
+        helpLicenseWindow = [[HelpPanelController alloc] initWithWindowNibName:@"HelpPanelController"];
+        [[helpLicenseWindow window] setMinSize: NSMakeSize(290, 200)];
+    }
+
+    NSAttributedString *content = [[NSAttributedString alloc] initWithURL:url
+                                                                  options: @{NSDocumentTypeDocumentOption: NSRTFTextDocumentType}
+                                                       documentAttributes:nil
+                                                                    error:&error];
+
+    [helpLicenseWindow showHelpFile:content withTitle:title];
 }
 
 /*
@@ -103,10 +120,10 @@ NSDictionary *gFormatMap;
 - (IBAction) openDocument: (id)sender
 {
     NSLog(@"appdel: openDocument");
-    
+
     NSURL *directory = [NSURL fileURLWithPath:[[NSUserDefaults standardUserDefaults] objectForKey: @"GameDirectory"] isDirectory:YES];
     NSOpenPanel *panel;
-    
+
     if (filePanel)
     {
         [filePanel makeKeyAndOrderFront: nil];
@@ -114,22 +131,22 @@ NSDictionary *gFormatMap;
     else
     {
         panel = [NSOpenPanel openPanel];
-        
+
         panel.allowedFileTypes = gGameFileTypes;
         panel.directoryURL = directory;
         NSLog(@"directory = %@", directory);
         [panel beginWithCompletionHandler:^(NSInteger result){
             if (result == NSFileHandlingPanelOKButton) {
-                NSURL*  theDoc = panel.URLs[0];
+                NSURL*  theDoc = [panel URLs][0];
                 {
-                    NSString *pathString = theDoc.path.stringByDeletingLastPathComponent;
+                    NSString *pathString = [[theDoc path] stringByDeletingLastPathComponent];
                     NSLog(@"directory = %@", directory);
-                    if ([theDoc.path.pathExtension isEqualToString: @"sav"])
+                    if ([[[theDoc path] pathExtension] isEqualToString: @"sav"])
                         [[NSUserDefaults standardUserDefaults] setObject: pathString forKey: @"SaveDirectory"];
                     else
                         [[NSUserDefaults standardUserDefaults] setObject: pathString forKey: @"GameDirectory"];
-                    
-                    [self application: NSApp openFile: theDoc.path];
+
+                    [self application: NSApp openFile: [theDoc path]];
                 }
             }
         }];
@@ -140,8 +157,8 @@ NSDictionary *gFormatMap;
 - (BOOL) application: (NSApplication*)theApp openFile: (NSString *)path
 {
     NSLog(@"appdel: openFile '%@'", path);
-    
-    if ([path.pathExtension.lowercaseString isEqualToString: @"ifiction"])
+
+    if ([[[path pathExtension] lowercaseString] isEqualToString: @"ifiction"])
     {
         [libctl importMetadataFromFile: path];
     }
@@ -149,7 +166,7 @@ NSDictionary *gFormatMap;
     {
         [libctl importAndPlayGame: path];
     }
-    
+
     return YES;
 }
 
@@ -160,24 +177,59 @@ NSDictionary *gFormatMap;
     return YES;
 }
 
+- (NSWindow *) preferencePanel
+{
+	return [prefctl window];
+}
+
+-(void)addToRecents:(NSArray*)URLs
+{
+    if (!addToRecents) {
+        addToRecents = YES;
+        return;
+    }
+
+    if (!theDocCont) {
+        theDocCont = [NSDocumentController sharedDocumentController];
+    }
+    [URLs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+        [theDocCont noteNewRecentDocumentURL:obj];
+    }];
+}
+
+
+-(void)application:(NSApplication *)sender openFiles:(NSArray *)filenames
+{
+    /* This is called when we select a file from the Open Recent menu,
+     so we don't add them again */
+
+    addToRecents = NO;
+    for (NSString *path in filenames)
+    {
+        [self application: NSApp openFile: path];
+    }
+    addToRecents = YES;
+
+}
+
 - (NSApplicationTerminateReply) applicationShouldTerminate: (NSApplication *)app
 {
-    NSArray *windows = app.windows;
-    NSInteger count = windows.count;
+    NSArray *windows = [app windows];
+    NSInteger count = [windows count];
     NSInteger alive = 0;
-    
+
     NSLog(@"appdel: applicationShouldTerminate");
-    
+
     while (count--)
     {
         NSWindow *window = windows[count];
-        id glkctl = window.delegate;
+        id glkctl = [window delegate];
         if ([glkctl isKindOfClass: [GlkController class]] && [glkctl isAlive])
             alive ++;
     }
-    
+
     NSLog(@"appdel: windows=%lu alive=%ld", (unsigned long)[windows count], (long)alive);
-    
+
     if (alive > 0)
     {
         NSString *msg = @"You still have one game running.\nAny unsaved progress will be lost.";
@@ -187,13 +239,15 @@ NSDictionary *gFormatMap;
         if (choice == NSAlertOtherReturn)
             return NSTerminateCancel;
     }
-    
+
     return NSTerminateNow;
 }
 
 - (void) applicationWillTerminate: (NSNotification*)notification
 {
     [libctl saveLibrary:self];
+    if ([[NSFontPanel sharedFontPanel] isVisible])
+		[[NSFontPanel sharedFontPanel] orderOut:self];
 }
 
 @end

@@ -37,7 +37,7 @@ void wintitle(void);
 
 /* window server connection */
 
-void win_hello();
+void win_hello(void);
 void win_bye(char *reason);
 char *win_promptopen(int type);
 char *win_promptsave(int type);
@@ -51,7 +51,11 @@ void win_initchar(int name);
 void win_cancelchar(int name);
 void win_initline(int name, int cap, int len, char *buf);
 void win_cancelline(int name, int cap, int *len, char *buf);
+void win_setlink(int name, int val);
+void win_initlink(int name);
+void win_cancellink(int name);
 void win_set_echo(int name, int val);
+void win_set_terminators(int name, glui32 *keycodes, int count);
 void win_initmouse(int name);
 void win_cancelmouse(int name);
 
@@ -81,6 +85,8 @@ int  win_findsound(int resno);
 void win_loadsound(int resno, char *buf, int len);
 void win_playsound(int chan, int repeats, int notify);
 void win_stopsound(int chan);
+void win_sound_notify(int snd, int notify);
+void win_volume_notify(int notify);
 
 /* unicode case mapping */
 
@@ -102,7 +108,7 @@ glui32 gli_parse_utf8(unsigned char *buf, glui32 buflen, glui32 *out, glui32 out
 
 /* blorb resources */
 
-int giblorb_is_resource_map();
+int giblorb_is_resource_map(void);
 void giblorb_get_resource(glui32 usage, glui32 resnum, FILE **file, long *pos, long *len, glui32 *type);
 
 /* Callbacks for the dispatch layer */
@@ -164,17 +170,17 @@ typedef struct attr_s
 } attr_t;
 
 struct glk_window_struct {
-    
+
     glui32 magicnum;
     glui32 rock;
     glui32 type;
-    
+
     window_t *parent;		/* pair window which contains this one */
     grect_t bbox;		/* content rectangle, excluding borders */
 
-    
+
     int peer;			/* GUI server peer window */
-    
+
     struct
     {
         window_t *child1, *child2;
@@ -184,7 +190,7 @@ struct glk_window_struct {
         window_t *key;			/* NULL or a leaf-descendant (not a Pair) */
         glui32 size;			/* size value */
     } pair;
-    
+
     struct
     {
         void *buf;
@@ -192,12 +198,12 @@ struct glk_window_struct {
         int cap;
         gidispatch_rock_t inarrayrock;
     } line;
-    
+
     glui32 background;	/* for graphics windows */
-    
+
     stream_t *str; /* the window stream. */
     stream_t *echostr; /* the window's echo stream, if any. */
-    
+
     int line_request;
     int line_request_uni;
     int char_request;
@@ -207,20 +213,20 @@ struct glk_window_struct {
     int more_request;
     int scroll_request;
     int image_loaded;
-    
+
     glui32 echo_line_input;
     glui32 *line_terminators;
     glui32 termct;
 
     glui32 style;
-    
+
     //void *linebuf;
     //glui32 linebuflen;
     //int linecap;
     //gidispatch_rock_t inarrayrock;
-    
+
     attr_t attr;
-    
+
     gidispatch_rock_t disprock;
     window_t *next, *prev; /* in the big linked list of windows */
 
@@ -259,25 +265,25 @@ void gli_delete_window(window_t *win);
 struct glk_stream_struct {
     glui32 magicnum;
     glui32 rock;
-    
+
     int type; /* file, window, or memory stream */
     int unicode; /* one-byte or four-byte chars? Not meaningful for windows */
-    
+
     glui32 readcount, writecount;
     int readable, writable;
-    
+
     /* for strtype_Window */
     window_t *win;
-    
+
     /* for strtype_File */
     FILE *file;
     glui32 lastop; /* 0, filemode_Write, or filemode_Read */
     //int textfile;
-    
+
     /* for strtype_Resource */
     int isbinary;
 
-    /* for strtype_Memory and strtype_Resource. Separate pointers for 
+    /* for strtype_Memory and strtype_Resource. Separate pointers for
        one-byte and four-byte streams */
     unsigned char *buf;
     unsigned char *bufptr;
@@ -305,18 +311,6 @@ struct glk_fileref_struct {
     gidispatch_rock_t disprock;
     fileref_t *next, *prev; /* in the big linked list of filerefs */
 };
-
-typedef glui32 gli_case_block_t[2]; /* upper, lower */
-/* If both are 0xFFFFFFFF, you have to look at the special-case table. */
-
-typedef glui32 gli_case_special_t[3]; /* upper, lower, title */
-/* Each of these points to a subarray of the unigen_special_array
- (in cgunicode.c). In that subarray, element zero is the length,
- and that's followed by length unicode values. */
-
-typedef glui32 gli_decomp_block_t[2]; /* count, position */
-/* The position points to a subarray of the unigen_decomp_array.
- If the count is zero, there is no decomposition. */
 
 /* Declarations of library internal functions. */
 
@@ -357,15 +351,15 @@ enum { CHANNEL_IDLE, CHANNEL_SOUND, CHANNEL_MUSIC };
 struct glk_schannel_struct
 {
     glui32 rock;
-    
+
     void *sample; /* Mix_Chunk (or FMOD Sound) */
     void *music; /* Mix_Music (or FMOD Music) */
     void *decode; /* Sound_Sample */
-    
+
     void *sdl_rwops; /* SDL_RWops */
     unsigned char *sdl_memory;
     int sdl_channel;
-    
+
     int resid; /* for notifies */
     int status;
     int channel;
@@ -373,14 +367,21 @@ struct glk_schannel_struct
     glui32 loop;
     int notify;
     int buffered;
-    
+    int paused;
+
+    /* for volume fades */
+    int volume_notify;
+    int volume_timeout;
+    int target_volume;
+    double float_volume;
+    double volume_delta;
+    void *timer;
+
     gidispatch_rock_t disprock;
     channel_t *chain_next, *chain_prev;
 };
 
 extern void gli_initialize_sound(void);
-
-
 
 /* A macro that I can't think of anywhere else to put it. */
 
@@ -392,21 +393,21 @@ extern void gli_initialize_sound(void);
 
 /* A macro which reads and decodes one character of UTF-8. Needs no
  explanation, I'm sure.
- 
+
  Oh, okay. The character will be written to *chptr (so pass in "&ch",
  where ch is a glui32 variable). eofcond should be a condition to
  evaluate end-of-stream -- true if no more characters are readable.
  nextch is a function which reads the next character; this is invoked
  exactly as many times as necessary.
- 
+
  val0, val1, val2, val3 should be glui32 scratch variables. The macro
  needs these. Just define them, you don't need to pay attention to them
  otherwise.
- 
+
  The macro itself evaluates to true if ch was successfully set, or
  false if something went wrong. (Not enough characters, or an
  invalid byte sequence.)
- 
+
  This is not the worst macro I've ever written, but I forget what the
  other one was.
  */

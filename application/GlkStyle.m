@@ -76,36 +76,36 @@
         NSMutableParagraphStyle *para = [[NSMutableParagraphStyle alloc] init];
         [para setParagraphStyle: dict[NSParagraphStyleAttributeName]];
         
-        NSInteger indent = para.headIndent;
-        NSInteger paraindent = para.firstLineHeadIndent - indent;
+        NSInteger indent = [para headIndent];
+        NSInteger paraindent = [para firstLineHeadIndent] - indent;
         
         if (enabled[stylehint_Indentation])
             indent = value[stylehint_Indentation] * 3;
         if (enabled[stylehint_ParaIndentation])
             paraindent = value[stylehint_ParaIndentation] * 3;
         
-        para.headIndent = indent;
-        para.firstLineHeadIndent = (indent + paraindent);
+        [para setHeadIndent: indent];
+        [para setFirstLineHeadIndent: (indent + paraindent)];
         
         if (enabled[stylehint_Justification])
         {
             switch (value[stylehint_Justification])
             {
                 case stylehint_just_LeftFlush:
-                    para.alignment = NSLeftTextAlignment;
+                    [para setAlignment: NSLeftTextAlignment];
                     break;
                 case stylehint_just_LeftRight:
-                    para.alignment = NSJustifiedTextAlignment;
+                    [para setAlignment: NSJustifiedTextAlignment];
                     break;
                 case stylehint_just_Centered:
-                    para.alignment = NSCenterTextAlignment;
+                    [para setAlignment: NSCenterTextAlignment];
                     break;
                 case stylehint_just_RightFlush:
-                    para.alignment = NSRightTextAlignment;
+                    [para setAlignment: NSRightTextAlignment];
                     break;
             }
         }
-        
+
         dict[NSParagraphStyleAttributeName] = para;
     }
     
@@ -119,7 +119,7 @@
         
         if (enabled[stylehint_Size] && windowtype == wintype_TextBuffer)
         {
-            float size = font.matrix[0] + value[stylehint_Size] * 2;
+            float size = [font matrix][0] + value[stylehint_Size] * 2;
             font = [fontmgr convertFont: font toSize: size];
         }
         

@@ -3,7 +3,7 @@
  *
  * Keep an archive of game metadata.
  * Import iFiction format from files or babel software.
- * Save the database in Library/Application Support/Cugel/Metadata.plist
+ * Save the database in Library/Application Support/Spatterlight/Metadata.plist
  * Tag user-edited entries for export.
  *
  * Keep a list of games with map filename -> ifid
@@ -25,16 +25,18 @@
 }
 @end
 
-@interface LibController : NSWindowController<NSDraggingDestination>
+@class InfoController;
+
+@interface LibController : NSWindowController<NSDraggingDestination, NSWindowDelegate>
 {
     NSURL *homepath;
-    
+
     IBOutlet NSButton *infoButton;
     IBOutlet NSButton *playButton;
     IBOutlet NSPanel *importProgressPanel;
     IBOutlet NSView *exportTypeView;
     IBOutlet NSPopUpButton *exportTypeControl;
-    
+
     NSMutableDictionary *metadata; /* ifid -> metadata dict */
     NSMutableDictionary *games; /* ifid -> filename */
 
@@ -45,9 +47,13 @@
     NSMutableArray *gameTableModel;
     NSString *gameSortColumn;
     BOOL gameTableDirty;
-    
+    BOOL sortAscending;
+
+    BOOL canEdit;
+    NSTimer * timer;
+
     NSArray *searchStrings;
-    
+
     /* for the importing */
     NSInteger cursrc;
     NSMutableArray *ifidbuf;
@@ -85,10 +91,15 @@
 - (IBAction) revealGameInFinder: (id)sender;
 - (IBAction) deleteGame: (id)sender;
 
+@property (strong) IBOutlet NSMenu *headerMenu;
+- (IBAction)toggleColumn:(id)sender;
 - (void) deselectGames;
 - (void) selectGameWithIFID: (NSString*)ifid;
 - (void) updateTableViews; /* must call this after -importGame: */
 
+- (void)enableClickToRenameAfterDelay;
+
 - (NSString*) convertAGTFile: (NSString*)origpath;
+@property (weak) IBOutlet NSSearchField *searchField;
 
 @end

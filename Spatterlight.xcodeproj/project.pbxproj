@@ -26,6 +26,13 @@
 		6D395C191EAD095E0070886C /* vm.c in Sources */ = {isa = PBXBuildFile; fileRef = 6D5494371EAC1BC4003DA5C4 /* vm.c */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		6D5494441EAC1BC4003DA5C4 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 6D5494291EAC1BC4003DA5C4 /* LICENSE */; };
 		6D54944C1EAC1BC4003DA5C4 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 6D5494321EAC1BC4003DA5C4 /* README.md */; };
+		6D70DA80218B3F210022E13B /* Alan License.rtf in Copy Documentation Files */ = {isa = PBXBuildFile; fileRef = 6D70DA7C218B3EFC0022E13B /* Alan License.rtf */; };
+		6D73E55721873509009CD59A /* LibraryWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6D73E55621873509009CD59A /* LibraryWindow.xib */; };
+		6D85C897218BD6E10088D849 /* HelpPanelController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6D85C895218BD6E00088D849 /* HelpPanelController.m */; };
+		6D85C898218BD6E10088D849 /* HelpPanelController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6D85C896218BD6E00088D849 /* HelpPanelController.xib */; };
+		6D85C899218BE4AC0088D849 /* Glulxe License.rtf in Copy Documentation Files */ = {isa = PBXBuildFile; fileRef = 6D70DA7E218B3EFC0022E13B /* Glulxe License.rtf */; };
+		6DB6B51A219E31BF0039D2D7 /* fileref.m in Sources */ = {isa = PBXBuildFile; fileRef = 6DB6B519219E31BF0039D2D7 /* fileref.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		6DF87CDC218259DB0020E9A1 /* GlkHyperlink.m in Sources */ = {isa = PBXBuildFile; fileRef = 6DF87CDB218259DB0020E9A1 /* GlkHyperlink.m */; };
 		961153660A4F365C00BB7FF2 /* htmldb2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 961152510A4F355800BB7FF2 /* htmldb2.cpp */; };
 		961153670A4F365C00BB7FF2 /* htmldb3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 961152520A4F355800BB7FF2 /* htmldb3.cpp */; };
 		961153680A4F365C00BB7FF2 /* htmldbg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 961152530A4F355800BB7FF2 /* htmldbg.cpp */; };
@@ -82,7 +89,7 @@
 		961CCF4009F2946F00528FF9 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 961CCF2309F2940F00528FF9 /* Credits.rtf */; };
 		961CCF4509F2947700528FF9 /* GNU Public License.rtf in Copy Documentation Files */ = {isa = PBXBuildFile; fileRef = 961CCF2909F2940F00528FF9 /* GNU Public License.rtf */; };
 		961CCF4609F2947700528FF9 /* HUGO License.rtf in Copy Documentation Files */ = {isa = PBXBuildFile; fileRef = 961CCF2A09F2940F00528FF9 /* HUGO License.rtf */; };
-		961CCF4709F2947700528FF9 /* TADS License.rtf in Copy Documentation Files */ = {isa = PBXBuildFile; fileRef = 961CCF2B09F2940F00528FF9 /* TADS License.rtf */; };
+		961CCF4709F2947700528FF9 /* SDL License.rtf in Copy Documentation Files */ = {isa = PBXBuildFile; fileRef = 961CCF2B09F2940F00528FF9 /* SDL License.rtf */; };
 		961DC9370A108DE10044A0D4 /* quill.c in Sources */ = {isa = PBXBuildFile; fileRef = 961DC9360A108DE10044A0D4 /* quill.c */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		96264AC50A494A5E0093569C /* cgunicod.c in Sources */ = {isa = PBXBuildFile; fileRef = 96264AC30A494A5D0093569C /* cgunicod.c */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		9650370909F29F520083E64E /* buffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 9650327709F29EE20083E64E /* buffer.c */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
@@ -266,7 +273,6 @@
 		96A9BA9E0A06565B001B5B9B /* zcode.c in Sources */ = {isa = PBXBuildFile; fileRef = 96A9BA5F0A064C9C001B5B9B /* zcode.c */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		96A9BBA40A0668EB001B5B9B /* GameWindow.nib in Resources */ = {isa = PBXBuildFile; fileRef = 96A9BBA30A0668EB001B5B9B /* GameWindow.nib */; };
 		96A9BBDA0A066F41001B5B9B /* libbabel.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 96A9BA790A06558F001B5B9B /* libbabel.a */; };
-		96A9C0E50A07AD80001B5B9B /* LibraryWindow.nib in Resources */ = {isa = PBXBuildFile; fileRef = 96A9C0E40A07AD80001B5B9B /* LibraryWindow.nib */; };
 		96A9C0F00A07AE17001B5B9B /* LibController.m in Sources */ = {isa = PBXBuildFile; fileRef = 96A9C0EF0A07AE17001B5B9B /* LibController.m */; };
 		96B6FCA80A0D478400E62E4D /* IconApp.icns in Resources */ = {isa = PBXBuildFile; fileRef = 961CCF2409F2940F00528FF9 /* IconApp.icns */; };
 		96B6FCA90A0D478400E62E4D /* IconGame.icns in Resources */ = {isa = PBXBuildFile; fileRef = 961CCF2509F2940F00528FF9 /* IconGame.icns */; };
@@ -861,9 +867,11 @@
 			dstPath = docs;
 			dstSubfolderSpec = 7;
 			files = (
+				6D85C899218BE4AC0088D849 /* Glulxe License.rtf in Copy Documentation Files */,
+				6D70DA80218B3F210022E13B /* Alan License.rtf in Copy Documentation Files */,
 				961CCF4509F2947700528FF9 /* GNU Public License.rtf in Copy Documentation Files */,
 				961CCF4609F2947700528FF9 /* HUGO License.rtf in Copy Documentation Files */,
-				961CCF4709F2947700528FF9 /* TADS License.rtf in Copy Documentation Files */,
+				961CCF4709F2947700528FF9 /* SDL License.rtf in Copy Documentation Files */,
 			);
 			name = "Copy Documentation Files";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -906,6 +914,16 @@
 		6D5494351EAC1BC4003DA5C4 /* string.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = string.c; sourceTree = "<group>"; };
 		6D5494361EAC1BC4003DA5C4 /* unixstrt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = unixstrt.c; sourceTree = "<group>"; };
 		6D5494371EAC1BC4003DA5C4 /* vm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vm.c; sourceTree = "<group>"; };
+		6D70DA7C218B3EFC0022E13B /* Alan License.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = "Alan License.rtf"; sourceTree = "<group>"; };
+		6D70DA7E218B3EFC0022E13B /* Glulxe License.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = "Glulxe License.rtf"; sourceTree = "<group>"; };
+		6D73E55621873509009CD59A /* LibraryWindow.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = LibraryWindow.xib; sourceTree = "<group>"; };
+		6D85C894218BD6E00088D849 /* HelpPanelController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HelpPanelController.h; sourceTree = "<group>"; };
+		6D85C895218BD6E00088D849 /* HelpPanelController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HelpPanelController.m; sourceTree = "<group>"; };
+		6D85C896218BD6E00088D849 /* HelpPanelController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = HelpPanelController.xib; path = ../application/HelpPanelController.xib; sourceTree = "<group>"; };
+		6DB6B519219E31BF0039D2D7 /* fileref.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = fileref.m; sourceTree = "<group>"; };
+		6DB6B51B219E38870039D2D7 /* fileref.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fileref.h; sourceTree = "<group>"; };
+		6DF87CDA218259DB0020E9A1 /* GlkHyperlink.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GlkHyperlink.h; sourceTree = "<group>"; };
+		6DF87CDB218259DB0020E9A1 /* GlkHyperlink.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GlkHyperlink.m; sourceTree = "<group>"; };
 		9611524F0A4F355800BB7FF2 /* html_os.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html_os.h; sourceTree = "<group>"; };
 		961152500A4F355800BB7FF2 /* htmlattr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = htmlattr.h; sourceTree = "<group>"; };
 		961152510A4F355800BB7FF2 /* htmldb2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = htmldb2.cpp; sourceTree = "<group>"; };
@@ -1217,7 +1235,7 @@
 		961CCF2509F2940F00528FF9 /* IconGame.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = IconGame.icns; sourceTree = "<group>"; };
 		961CCF2909F2940F00528FF9 /* GNU Public License.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = "GNU Public License.rtf"; sourceTree = "<group>"; };
 		961CCF2A09F2940F00528FF9 /* HUGO License.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = "HUGO License.rtf"; sourceTree = "<group>"; };
-		961CCF2B09F2940F00528FF9 /* TADS License.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = "TADS License.rtf"; sourceTree = "<group>"; };
+		961CCF2B09F2940F00528FF9 /* SDL License.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = "SDL License.rtf"; sourceTree = "<group>"; };
 		961CCF2C09F2940F00528FF9 /* MainMenu.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = MainMenu.nib; sourceTree = "<group>"; };
 		961CCF2D09F2940F00528FF9 /* PrefsWindow.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = PrefsWindow.nib; sourceTree = "<group>"; };
 		961CCF6709F295E000528FF9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
@@ -1596,7 +1614,6 @@
 		9650338409F29EE20083E64E /* oem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = oem.h; sourceTree = "<group>"; };
 		9650338509F29EE20083E64E /* opc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = opc.h; sourceTree = "<group>"; };
 		9650338609F29EE20083E64E /* os.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = os.h; sourceTree = "<group>"; };
-		9650338709F29EE20083E64E /* os.h.orig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os.h.orig; sourceTree = "<group>"; };
 		9650338809F29EE20083E64E /* os0.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os0.c; sourceTree = "<group>"; };
 		9650338909F29EE20083E64E /* osbigmem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osbigmem.h; sourceTree = "<group>"; };
 		9650338A09F29EE20083E64E /* oserr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = oserr.c; sourceTree = "<group>"; };
@@ -2040,7 +2057,6 @@
 		96A9BA790A06558F001B5B9B /* libbabel.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libbabel.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		96A9BB7A0A0662FA001B5B9B /* GlkController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GlkController.h; sourceTree = "<group>"; };
 		96A9BBA30A0668EB001B5B9B /* GameWindow.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = GameWindow.nib; sourceTree = "<group>"; };
-		96A9C0E40A07AD80001B5B9B /* LibraryWindow.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = LibraryWindow.nib; sourceTree = "<group>"; };
 		96A9C0EF0A07AE17001B5B9B /* LibController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LibController.m; sourceTree = "<group>"; };
 		96A9C0F10A07AE31001B5B9B /* LibController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LibController.h; sourceTree = "<group>"; };
 		96B6FE6E0A0E4E0200E62E4D /* Question.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Question.png; sourceTree = "<group>"; };
@@ -2087,13 +2103,11 @@
 		C34F1FA71ED85E06002AB38B /* gi_debug.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = gi_debug.h; sourceTree = "<group>"; };
 		C35813931ED83DF0001E49C4 /* SDL2_mixer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_mixer.framework; path = Frameworks/SDL2_mixer.framework; sourceTree = "<group>"; };
 		C35813941ED83DF8001E49C4 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = Frameworks/SDL2.framework; sourceTree = "<group>"; };
-		C35813961ED83E11001E49C4 /* smpeg2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = smpeg2.framework; path = Frameworks/SDL2_mixer.framework/Versions/A/Frameworks/smpeg2.framework; sourceTree = "<group>"; };
 		C35813971ED83E18001E49C4 /* Ogg.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ogg.framework; path = Frameworks/SDL2_mixer.framework/Versions/A/Frameworks/Ogg.framework; sourceTree = "<group>"; };
 		C35813981ED83E22001E49C4 /* Vorbis.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vorbis.framework; path = Frameworks/SDL2_mixer.framework/Versions/A/Frameworks/Vorbis.framework; sourceTree = "<group>"; };
 		C35813991ED83E28001E49C4 /* modplug.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = modplug.framework; path = Frameworks/SDL2_mixer.framework/Versions/A/Frameworks/modplug.framework; sourceTree = "<group>"; };
 		C358139A1ED83E34001E49C4 /* FLAC.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FLAC.framework; path = Frameworks/SDL2_mixer.framework/Versions/A/Frameworks/FLAC.framework; sourceTree = "<group>"; };
 		C38101291EDA297E00B87B68 /* GlkController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GlkController.m; sourceTree = "<group>"; };
-		C38DB58E1EE17BF600CAE492 /* Document.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Document.xcdatamodel; sourceTree = "<group>"; };
 		C392312C1ECB7F9200536504 /* save.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = save.c; sourceTree = "<group>"; };
 		C392312E1ECB7FA900536504 /* sysdep.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = sysdep.c; sourceTree = "<group>"; };
 		C39231301ECB7FB900536504 /* syserr.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = syserr.c; sourceTree = "<group>"; };
@@ -2717,7 +2731,6 @@
 				961CCF2109F2940F00528FF9 /* resources */,
 				961CCF6509F295CA00528FF9 /* Frameworks */,
 				961CCE7C09F237E700528FF9 /* Products */,
-				C38DB58D1EE17BF600CAE492 /* Document.xcdatamodeld */,
 			);
 			sourceTree = "<group>";
 		};
@@ -2767,6 +2780,8 @@
 				961CCE8209F2381B00528FF9 /* blorb.c */,
 				961CCE8409F2381B00528FF9 /* event.c */,
 				961CCE8509F2381B00528FF9 /* fileref.c */,
+				6DB6B51B219E38870039D2D7 /* fileref.h */,
+				6DB6B519219E31BF0039D2D7 /* fileref.m */,
 				961CCE8609F2381B00528FF9 /* gestalt.c */,
 				961CCE8F09F2381B00528FF9 /* image.c */,
 				961CCE9009F2381B00528FF9 /* main.c */,
@@ -2801,6 +2816,8 @@
 				961CCEDA09F239E700528FF9 /* GlkEvent.m */,
 				96CC04C80A133B93004F30FA /* GlkStyle.h */,
 				96CC04C90A133B93004F30FA /* GlkStyle.m */,
+				6DF87CDA218259DB0020E9A1 /* GlkHyperlink.h */,
+				6DF87CDB218259DB0020E9A1 /* GlkHyperlink.m */,
 				961CCEE909F239E700528FF9 /* GlkWindow.h */,
 				961CCEEA09F239E700528FF9 /* GlkWindow.m */,
 				961CCEE509F239E700528FF9 /* GlkTextBufferWindow.h */,
@@ -2809,6 +2826,8 @@
 				961CCEE809F239E700528FF9 /* GlkTextGridWindow.m */,
 				961CCEDB09F239E700528FF9 /* GlkGraphicsWindow.h */,
 				961CCEDC09F239E700528FF9 /* GlkGraphicsWindow.m */,
+				6D85C894218BD6E00088D849 /* HelpPanelController.h */,
+				6D85C895218BD6E00088D849 /* HelpPanelController.m */,
 			);
 			path = application;
 			sourceTree = "<group>";
@@ -2827,8 +2846,9 @@
 				961CCF2C09F2940F00528FF9 /* MainMenu.nib */,
 				961CCF2D09F2940F00528FF9 /* PrefsWindow.nib */,
 				96A9BBA30A0668EB001B5B9B /* GameWindow.nib */,
-				96A9C0E40A07AD80001B5B9B /* LibraryWindow.nib */,
+				6D73E55621873509009CD59A /* LibraryWindow.xib */,
 				96FBD8EF0A094E2F002F6087 /* InfoPanel.nib */,
+				6D85C896218BD6E00088D849 /* HelpPanelController.xib */,
 			);
 			path = resources;
 			sourceTree = "<group>";
@@ -2836,9 +2856,11 @@
 		961CCF2809F2940F00528FF9 /* docs */ = {
 			isa = PBXGroup;
 			children = (
+				6D70DA7C218B3EFC0022E13B /* Alan License.rtf */,
+				6D70DA7E218B3EFC0022E13B /* Glulxe License.rtf */,
 				961CCF2909F2940F00528FF9 /* GNU Public License.rtf */,
 				961CCF2A09F2940F00528FF9 /* HUGO License.rtf */,
-				961CCF2B09F2940F00528FF9 /* TADS License.rtf */,
+				961CCF2B09F2940F00528FF9 /* SDL License.rtf */,
 			);
 			path = docs;
 			sourceTree = "<group>";
@@ -2850,7 +2872,6 @@
 				C35813991ED83E28001E49C4 /* modplug.framework */,
 				C35813981ED83E22001E49C4 /* Vorbis.framework */,
 				C35813971ED83E18001E49C4 /* Ogg.framework */,
-				C35813961ED83E11001E49C4 /* smpeg2.framework */,
 				C35813941ED83DF8001E49C4 /* SDL2.framework */,
 				C35813931ED83DF0001E49C4 /* SDL2_mixer.framework */,
 				961CCF6709F295E000528FF9 /* Foundation.framework */,
@@ -3199,8 +3220,7 @@
 				965032BC09F29EE20083E64E /* level9.c */,
 				965032BD09F29EE20083E64E /* level9.h */,
 			);
-			name = level9;
-			path = hugo/heglk/level9;
+			path = level9;
 			sourceTree = "<group>";
 		};
 		965032C009F29EE20083E64E /* magnetic */ = {
@@ -3375,7 +3395,6 @@
 				9650338109F29EE20083E64E /* objcomp.c */,
 				9650338409F29EE20083E64E /* oem.h */,
 				9650338509F29EE20083E64E /* opc.h */,
-				9650338709F29EE20083E64E /* os.h.orig */,
 				9650338909F29EE20083E64E /* osbigmem.h */,
 				9650338B09F29EE20083E64E /* osgen.c */,
 				9650338C09F29EE20083E64E /* osgen.h */,
@@ -4582,10 +4601,11 @@
 				961CCF3D09F2946700528FF9 /* MainMenu.nib in Resources */,
 				961CCF3E09F2946700528FF9 /* PrefsWindow.nib in Resources */,
 				96A9BBA40A0668EB001B5B9B /* GameWindow.nib in Resources */,
-				96A9C0E50A07AD80001B5B9B /* LibraryWindow.nib in Resources */,
 				96FBD8F00A094E30002F6087 /* InfoPanel.nib in Resources */,
 				6D5494441EAC1BC4003DA5C4 /* LICENSE in Resources */,
 				6D54944C1EAC1BC4003DA5C4 /* README.md in Resources */,
+				6D73E55721873509009CD59A /* LibraryWindow.xib in Resources */,
+				6D85C898218BD6E10088D849 /* HelpPanelController.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4651,6 +4671,7 @@
 				96264AC50A494A5E0093569C /* cgunicod.c in Sources */,
 				C3EF065F1ECE60D1008EED04 /* cgdate.c in Sources */,
 				C3B2FB141ECEE4B700826C9D /* sndsdl.c in Sources */,
+				6DB6B51A219E31BF0039D2D7 /* fileref.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4678,6 +4699,8 @@
 				961CCEF509F23A0000528FF9 /* GlkTextBufferWindow.m in Sources */,
 				961CCEF609F23A0000528FF9 /* GlkTextGridWindow.m in Sources */,
 				961CCEF009F23A0000528FF9 /* GlkGraphicsWindow.m in Sources */,
+				6DF87CDC218259DB0020E9A1 /* GlkHyperlink.m in Sources */,
+				6D85C897218BD6E10088D849 /* HelpPanelController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5476,6 +5499,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
@@ -5493,19 +5517,19 @@
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_INPUT_FILETYPE = automatic;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = NO;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = "";
+				HEADER_SEARCH_PATHS = /opt/local/include;
 				LD_RUNPATH_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
-				VALID_ARCHS = "i386 x86_64";
+				SDKROOT = "";
+				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
@@ -5513,6 +5537,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
@@ -5523,24 +5548,26 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_ENTITLEMENTS[sdk=*]" = "";
 				COPY_PHASE_STRIP = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_INPUT_FILETYPE = automatic;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = NO;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = "";
+				HEADER_SEARCH_PATHS = /opt/local/include;
 				LD_RUNPATH_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
-				SDKROOT = macosx;
-				VALID_ARCHS = "i386 x86_64";
+				SDKROOT = "";
+				VALID_ARCHS = x86_64;
 			};
 			name = Release;
 		};
@@ -5564,6 +5591,7 @@
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include/SDL,
 					/usr/local/include,
+					/opt/local/include,
 				);
 				INSTALL_PATH = "@executable_path";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks @executable_path/../Frameworks/SDL2_mixer.framework/Versions/A/Frameworks @executable_path";
@@ -5591,11 +5619,12 @@
 				);
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = "";
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include/SDL,
 					/usr/local/include,
+					/opt/local/include,
 				);
 				INSTALL_PATH = "@executable_path";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks @executable_path/../Frameworks/SDL2_mixer.framework/Versions/A/Frameworks @executable_path";
@@ -5618,6 +5647,7 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = "";
 				INSTALL_PATH = /usr/local/lib;
 				PRODUCT_NAME = glkmain;
 			};
@@ -5630,6 +5660,7 @@
 				COPY_PHASE_STRIP = YES;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = "";
 				INSTALL_PATH = /usr/local/lib;
 				PRODUCT_NAME = glkmain;
 			};
@@ -5646,7 +5677,8 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
-				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = DEBUG;
+				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = "";
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = "$(HEADER_SEARCH_PATHS)";
 				INFOPLIST_FILE = resources/Info.plist;
@@ -5665,6 +5697,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = net.ccxvii.spatterlight;
 				PRODUCT_NAME = Spatterlight;
+				SDKROOT = macosx;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -5676,8 +5709,11 @@
 				COPY_PHASE_STRIP = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_INPUT_FILETYPE = sourcecode.c.objc;
+				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
+				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = "";
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = "$(HEADER_SEARCH_PATHS)";
 				INFOPLIST_FILE = resources/Info.plist;
@@ -5696,6 +5732,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = net.ccxvii.spatterlight;
 				PRODUCT_NAME = Spatterlight;
+				SDKROOT = macosx;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -5709,6 +5746,7 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = SPATTERLIGHT;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = frotz;
 			};
@@ -5722,6 +5760,7 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = s;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = SPATTERLIGHT;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = frotz;
 			};
@@ -5772,6 +5811,7 @@
 					"strnicmp=gln_strncasecmp",
 					BITMAP_DECODER,
 					SPATTERLIGHT,
+					GARGLK,
 				);
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = level9;
@@ -5791,6 +5831,7 @@
 					"strnicmp=gln_strncasecmp",
 					BITMAP_DECODER,
 					SPATTERLIGHT,
+					GARGLK,
 				);
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = level9;
@@ -5806,7 +5847,7 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = SPATTERLIGHT;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = GARGLK;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = magnetic;
@@ -5820,7 +5861,7 @@
 				COPY_PHASE_STRIP = YES;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = SPATTERLIGHT;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = GARGLK;
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = magnetic;
@@ -5836,6 +5877,7 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = GARGLK;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = unquill;
 			};
@@ -5848,6 +5890,7 @@
 				COPY_PHASE_STRIP = YES;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = GARGLK;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = unquill;
 			};
@@ -5863,6 +5906,7 @@
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_INPUT_FILETYPE = sourcecode.c.c;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = GARGLK;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = glulxe;
 			};
@@ -5877,6 +5921,7 @@
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_INPUT_FILETYPE = sourcecode.c.c;
 				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = GARGLK;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = glulxe;
 			};
@@ -5937,6 +5982,7 @@
 					GLK,
 					COMPILE_V25,
 					NO_KEYPRESS_CURSOR,
+					SPATTERLIGHT,
 				);
 				INSTALL_PATH = "$(HOME)/bin";
 				OTHER_CFLAGS = "";
@@ -5958,6 +6004,7 @@
 					GLK,
 					COMPILE_V25,
 					NO_KEYPRESS_CURSOR,
+					SPATTERLIGHT,
 				);
 				INSTALL_PATH = "$(HOME)/bin";
 				OTHER_CFLAGS = "";
@@ -6030,7 +6077,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = (
 					GLK,
 					"BUILD=0",
-					HAVE_GLK,
 					HAVE_GARGLK,
 				);
 				INSTALL_PATH = "$(HOME)/bin";
@@ -6051,7 +6097,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = (
 					GLK,
 					"BUILD=0",
-					HAVE_GLK,
 					HAVE_GARGLK,
 				);
 				INSTALL_PATH = "$(HOME)/bin";
@@ -6404,8 +6449,8 @@
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
 					"$(inherited)",
+					"DEBUG=1",
 				);
 				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = (
 					SOUND_SUPPORTS_OGG,
@@ -6413,8 +6458,12 @@
 				);
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				HEADER_SEARCH_PATHS = $PROJECT_DIR/support/sdl_sound;
+				HEADER_SEARCH_PATHS = (
+					$PROJECT_DIR/support/sdl_sound,
+					/opt/local/include,
+				);
 				LIBRARY_SEARCH_PATHS = (
+					/opt/local/lib,
 					"$(inherited)",
 					"$(PROJECT_DIR)/Frameworks",
 				);
@@ -6422,7 +6471,7 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				OTHER_LDFLAGS = "-all_load";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				USER_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/Frameworks/SDL2.framework/Versions/A/Headers/ $(PROJECT_DIR)/Frameworks/SDL2_mixer.framework/Versions/A/Frameworks/modplug.framework/Headers";
+				USER_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/Frameworks/SDL2.framework/Versions/A/Headers/ $(PROJECT_DIR)/Frameworks/SDL2_mixer.framework/Versions/A/Frameworks/Vorbis.framework/Headers $(PROJECT_DIR)/Frameworks/SDL2_mixer.framework/Versions/A/Frameworks/modplug.framework/Headers";
 			};
 			name = Debug;
 		};
@@ -6457,8 +6506,12 @@
 				);
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				HEADER_SEARCH_PATHS = $PROJECT_DIR/support/sdl_sound;
+				HEADER_SEARCH_PATHS = (
+					$PROJECT_DIR/support/sdl_sound,
+					/opt/local/include,
+				);
 				LIBRARY_SEARCH_PATHS = (
+					/opt/local/lib,
 					"$(inherited)",
 					"$(PROJECT_DIR)/Frameworks",
 				);
@@ -6681,20 +6734,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCVersionGroup section */
-		C38DB58D1EE17BF600CAE492 /* Document.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				C38DB58E1EE17BF600CAE492 /* Document.xcdatamodel */,
-			);
-			currentVersion = C38DB58E1EE17BF600CAE492 /* Document.xcdatamodel */;
-			name = Document.xcdatamodeld;
-			path = "../Lär dig data/Sputterlight/Sputterlight/Document.xcdatamodeld";
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-/* End XCVersionGroup section */
 	};
 	rootObject = 961CCE6009F2375A00528FF9 /* Project object */;
 }
