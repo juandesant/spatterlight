@@ -13,14 +13,15 @@
     NSTextFinder* _textFinder; // define your own text finder
 }
 
-@property (readonly) NSTextFinder* textFinder;
+@property (weak, readonly) NSTextFinder* textFinder;
 
 @end
 
 @interface HelpPanelController : NSWindowController
-
-@property (strong) IBOutlet HelpTextView *textView;
-@property (strong) IBOutlet NSScrollView *scrollView;
+{
+    IBOutlet HelpTextView *textView;
+    IBOutlet NSScrollView *scrollView;
+}
 
 - (void) showHelpFile:(NSAttributedString *)text withTitle:(NSString *)title;
 

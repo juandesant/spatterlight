@@ -35,6 +35,7 @@ int ggridmarginx = 0;
 int ggridmarginy = 0;
 float gcellw = 8;
 float gcellh = 12;
+float gleading = 0;
 
 void sendmsg(int cmd, int a1, int a2, int a3, int a4, int a5, int len, char *buf)
 {
@@ -154,7 +155,7 @@ void win_print(int name, int ch, int at)
         win_flush();
     if (buffering == BUFPRINT && bufferatt != at)
         win_flush();
-    if (buffering == BUFPRINT && bufferlen >= PBUFSIZE)
+    if (buffering == BUFPRINT && (unsigned long)bufferlen >= PBUFSIZE)
         win_flush();
 
     if (buffering == BUFNONE)
@@ -199,7 +200,7 @@ void win_fillrect(int name, glui32 color, int x, int y, int w, int h)
 
     if (buffering == BUFRECT && bufferwin != name)
         win_flush();
-    if (buffering == BUFRECT && bufferlen >= RBUFSIZE)
+    if (buffering == BUFRECT && (unsigned long)bufferlen >= RBUFSIZE)
         win_flush();
 
     if (buffering == BUFNONE)
@@ -527,25 +528,28 @@ again:
 #ifdef DEBUG
             //	     fprintf(stderr, "arrange event\n");
 #endif
+            /* + 5 for default line fragment padding */
             if ( gscreenw == wmsg.a1 &&
                 gscreenh == wmsg.a2 &&
-                gbuffermarginx == wmsg.a3 &&
+                gbuffermarginx == wmsg.a3 + 5 &&
                 gbuffermarginy == wmsg.a3 &&
-                ggridmarginx == wmsg.a4 &&
+                ggridmarginx == wmsg.a4 + 5 &&
                 ggridmarginy == wmsg.a4 &&
                 gcellw == wmsg.a5 / 256.0 &&
-                gcellh == wmsg.a6 / 256.0 )
+                gcellh == wmsg.a6 / 256.0 &&
+				gleading == wmsg.a7 / 256.0 )
                 goto again;
 
             event->type = evtype_Arrange;
             gscreenw = wmsg.a1;
             gscreenh = wmsg.a2;
-            gbuffermarginx = wmsg.a3;
+            gbuffermarginx = wmsg.a3 + 5;
             gbuffermarginy = wmsg.a3;
-            ggridmarginx = wmsg.a4;
+            ggridmarginx = wmsg.a4 + 5;
             ggridmarginy = wmsg.a4;
             gcellw = wmsg.a5 / 256.0;
             gcellh = wmsg.a6 / 256.0;
+			gleading = wmsg.a7 / 256.0;
             gli_windows_rearrange();
             break;
 
@@ -564,7 +568,7 @@ again:
                 event->val1 = MIN(wmsg.a2, event->win->line.cap); /* / sizeof(glui32));*/
                 glui32 *obuf = event->win->line.buf;
                 unsigned short *ibuf = (unsigned short*)wbuf;
-                for (i = 0; i < event->val1; i++)
+                for (i = 0; i < (int)event->val1; i++)
                     obuf[i] = ibuf[i];
                 if (event->win->echostr)
                     gli_stream_echo_line_uni(event->win->echostr, event->win->line.buf, event->val1);
@@ -574,7 +578,7 @@ again:
                 event->val1 = MIN(wmsg.a2, event->win->line.cap);
                 unsigned char *obuf = event->win->line.buf;
                 unsigned short *ibuf = (unsigned short*)wbuf;
-                for (i = 0; i < event->val1; i++)
+                for (i = 0; i < (int)event->val1; i++)
                     obuf[i] = ibuf[i] < 0x100 ? ibuf[i] : '?';
                 if (event->win->echostr)
                     gli_stream_echo_line(event->win->echostr, event->win->line.buf, event->val1);

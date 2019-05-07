@@ -44,6 +44,9 @@
     NSInteger infoWindowIndex;
 
     IBOutlet NSTableView *gameTableView;
+    IBOutlet NSMenu *headerMenu;
+    IBOutlet NSSearchField *searchField;
+    
     NSMutableArray *gameTableModel;
     NSString *gameSortColumn;
     BOOL gameTableDirty;
@@ -87,11 +90,10 @@
 - (IBAction) searchForGames: (id)sender;
 - (IBAction) playGame: (id)sender;
 - (IBAction) showGameInfo: (id)sender;
-- (InfoController *) createInfoController;
+@property (readonly, strong) InfoController *createInfoController;
 - (IBAction) revealGameInFinder: (id)sender;
 - (IBAction) deleteGame: (id)sender;
 
-@property (strong) IBOutlet NSMenu *headerMenu;
 - (IBAction)toggleColumn:(id)sender;
 - (void) deselectGames;
 - (void) selectGameWithIFID: (NSString*)ifid;
@@ -100,6 +102,5 @@
 - (void)enableClickToRenameAfterDelay;
 
 - (NSString*) convertAGTFile: (NSString*)origpath;
-@property (weak) IBOutlet NSSearchField *searchField;
 
 @end

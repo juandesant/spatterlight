@@ -262,8 +262,8 @@ glui32 glk_schannel_play(schanid_t chan, glui32 snd)
 glui32 glk_schannel_play_multi(schanid_t *chanarray, glui32 chancount,
         glui32 *sndarray, glui32 soundcount, glui32 notify)
 {
-    int i;
-    int successes = 0;
+    glui32 i;
+    glui32 successes = 0;
 
     for (i = 0; i < chancount; i++)
     {
@@ -502,7 +502,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, char **buf)
         }
 
         fseek(file, 0, 0);
-        if (fread(*buf, 1, *len, file) != *len && !feof(file))
+        if ((long)fread(*buf, 1, *len, file) != *len && !feof(file))
         {
             fclose(file);
             return 0;
@@ -563,7 +563,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, char **buf)
             return 0;
 
         fseek(file, pos, 0);
-        if (fread(*buf, 1, *len, file) != *len && !feof(file)) return 0;
+        if ((long)fread(*buf, 1, *len, file) != *len && !feof(file)) return 0;
         return type;
     }
 }
@@ -662,7 +662,7 @@ static glui32 play_mod(schanid_t chan, long len)
 	//fprintf(stderr, "tempdir = %s\n", tempdir);
 
     sprintf(tn, "%sXXXXXX", tempdir);
-    mktemp(tn);
+    mkstemp(tn);
 	sprintf(tn, "%s.mod", tn);
 
     //fprintf(stderr, "tn = %s\n", tn);

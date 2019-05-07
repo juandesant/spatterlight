@@ -1,3 +1,4 @@
+#include <math.h>
 #include "glkimp.h"
 
 /* yergh! the windows creation and arrangement with implicit
@@ -495,12 +496,12 @@ void glk_window_get_size(window_t *win, glui32 *width, glui32 *height)
 	    /* always zero */
 	    break;
 	case wintype_TextGrid:
-	    wid = ((win->bbox.x1 - win->bbox.x0) - ggridmarginx) / gcellw;
-	    hgt = ((win->bbox.y1 - win->bbox.y0) - ggridmarginy) / gcellh;
+	    wid = ceil(((win->bbox.x1 - win->bbox.x0) - ggridmarginx * 2) / gcellw);
+	    hgt = ((win->bbox.y1 - win->bbox.y0) + gleading - ggridmarginy * 2) / gcellh;
 	    break;
 	case wintype_TextBuffer:
-	    wid = ((win->bbox.x1 - win->bbox.x0) - gbuffermarginx) / gcellw;
-	    hgt = ((win->bbox.y1 - win->bbox.y0) - gbuffermarginy) / gcellh;
+	    wid = ceil(((win->bbox.x1 - win->bbox.x0) - gbuffermarginx * 2) / gcellw);
+	    hgt = ((win->bbox.y1 - win->bbox.y0) + gleading - gbuffermarginy * 2) / gcellh;
 	    break;
 	case wintype_Graphics:
 	    wid = win->bbox.x1 - win->bbox.x0;
@@ -722,7 +723,7 @@ void gli_window_rearrange(window_t *win, grect_t *box)
 				else if (win->pair.vertical)
 				    split = win->pair.size * gcellw + gbuffermarginx * 2;
 				else
-				    split = win->pair.size * gcellh + gbuffermarginy * 2;
+				    split = win->pair.size * gcellh + gbuffermarginy * 2 - gleading;
 				break;
 			    case wintype_TextGrid:
 				if (win->pair.size == 0)
@@ -730,7 +731,7 @@ void gli_window_rearrange(window_t *win, grect_t *box)
 				else if (win->pair.vertical)
 				    split = win->pair.size * gcellw + ggridmarginx * 2;
 				else
-				    split = win->pair.size * gcellh + ggridmarginy * 2;
+				    split = win->pair.size * gcellh + ggridmarginy * 2 - gleading;
 				break;
 			    case wintype_Graphics:
 				split = win->pair.size;

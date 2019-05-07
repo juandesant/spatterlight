@@ -16,6 +16,10 @@
 #define MAXWIN 64
 #define MAXSND 32
 
+// Define the number of custom animation steps
+#define DURATION_ADJUSTMENT 0.2
+#define ANIMATION_STEPS 2
+
 @interface GlkHelperView : NSView
 {
     IBOutlet GlkController *delegate;
@@ -25,6 +29,7 @@
 @interface GlkController : NSWindowController
 {
     IBOutlet GlkHelperView *contentView;
+    IBOutlet NSView *borderView;
 
     /* for talking to the interpreter */
     NSTask *task;
@@ -34,7 +39,7 @@
 
     /* current state of the protocol */
     NSTimer *timer;
-	NSTimer *soundNotificationsTimer;
+    NSTimer *soundNotificationsTimer;
     NSInteger waitforevent; /* terp wants an event */
     NSInteger waitforfilename; /* terp wants a filename from a file dialog */
     NSInteger dead; /* le roi est mort! vive le roi! */
@@ -58,6 +63,10 @@
     NSString *gamefile;
     NSString *gameifid;
     NSDictionary *gameinfo;
+
+    NSRect contentFullScreenFrame;
+    NSRect windowPreFullscreenFrame;
+    CGFloat fontSizePreFullscreen;
 }
 
 - (void) runTerp: (NSString*)terpname
@@ -66,9 +75,10 @@
             info: (NSDictionary*)gameinfo;
 - (void) queueEvent: (GlkEvent*)gevent;
 - (void) contentDidResize: (NSRect)frame;
-- (BOOL) isAlive;
+@property (getter=isAlive, readonly) BOOL alive;
 - (void) markLastSeen;
 - (void) performScroll;
 - (id) windowWithNum: (int)index;
+- (void) setBorderColor: (NSColor *)color;
 
 @end

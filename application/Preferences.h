@@ -13,6 +13,7 @@
     IBOutlet NSColorWell *clrBufferBg, *clrGridBg;
     IBOutlet NSTextField *txtBufferMargin, *txtGridMargin, *txtLeading;
     IBOutlet NSTextField *txtRows, *txtCols;
+    IBOutlet NSTextField *txtBorder;
     IBOutlet NSButton *btnSmartQuotes;
     IBOutlet NSButton *btnSpaceFormat;
     IBOutlet NSButton *btnEnableGraphics;
@@ -36,10 +37,17 @@
 - (IBAction) changeSmartQuotes: (id)sender;
 - (IBAction) changeSpaceFormatting: (id)sender;
 - (IBAction) changeDefaultSize: (id)sender;
+- (IBAction) changeBorderSize: (id)sender;
 - (IBAction) changeEnableGraphics: (id)sender;
 - (IBAction) changeEnableSound: (id)sender;
 - (IBAction) changeEnableStyles: (id)sender;
 - (IBAction) changeUseScreenFonts: (id)sender;
+
++ (void) zoomIn;
++ (void) zoomOut;
++ (void) zoomToActualSize;
++ (void) scale:(CGFloat)scalefactor;
+- (void) updatePanelAfterZoom;
 
 + (NSColor*) gridBackground;
 + (NSColor*) gridForeground;
@@ -47,15 +55,15 @@
 + (NSColor*) bufferForeground;
 + (NSColor*) inputColor;
 
-
 + (NSColor*) foregroundColor: (int)number;
 + (NSColor*) backgroundColor: (int)number;
 
 + (float) lineHeight;
 + (float) charWidth;
-+ (NSInteger) gridMargins;
-+ (NSInteger) bufferMargins;
-+ (float) leading;
++ (CGFloat) gridMargins;
++ (CGFloat) bufferMargins;
++ (CGFloat) border;
++ (CGFloat) leading;
 
 + (NSInteger) stylesEnabled;
 + (NSInteger) smartQuotes;
@@ -65,6 +73,7 @@
 + (NSInteger) soundEnabled;
 + (NSInteger) useScreenFonts;
 
++ (Preferences *) instance;
 + (NSDictionary*) attributesForGridStyle: (int)style;
 + (NSDictionary*) attributesForBufferStyle: (int)style;
 

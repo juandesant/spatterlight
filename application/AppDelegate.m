@@ -3,6 +3,7 @@
  */
 
 #import "main.h"
+#import "Compatibility.h"
 
 #ifdef DEBUG
 #define NSLog(FORMAT, ...) fprintf(stderr,"%s\n", [[NSString stringWithFormat:FORMAT, ##__VA_ARGS__] UTF8String]);
@@ -47,6 +48,10 @@ NSDictionary *gFormatMap;
     prefctl = [[Preferences alloc] initWithWindowNibName: @"PrefsWindow"];
     libctl = [[LibController alloc] initWithWindowNibName: @"LibraryWindow"];
     [libctl loadLibrary];
+    if (NSAppKitVersionNumber >= NSAppKitVersionNumber10_12)
+    {
+        [libctl.window setValue:@2 forKey:@"tabbingMode"];
+    }
 }
 
 - (IBAction) showPrefs: (id)sender
@@ -74,7 +79,7 @@ NSDictionary *gFormatMap;
     if (!helpLicenseWindow)
     {
         helpLicenseWindow = [[HelpPanelController alloc] initWithWindowNibName:@"HelpPanelController"];
-        [[helpLicenseWindow window] setMinSize: NSMakeSize(290, 200)];
+        helpLicenseWindow.window.minSize = NSMakeSize(290, 200);
     }
 
     NSAttributedString *content = [[NSAttributedString alloc] initWithURL:url
@@ -137,16 +142,16 @@ NSDictionary *gFormatMap;
         NSLog(@"directory = %@", directory);
         [panel beginWithCompletionHandler:^(NSInteger result){
             if (result == NSFileHandlingPanelOKButton) {
-                NSURL*  theDoc = [panel URLs][0];
+                NSURL*  theDoc = panel.URLs[0];
                 {
-                    NSString *pathString = [[theDoc path] stringByDeletingLastPathComponent];
+                    NSString *pathString = theDoc.path.stringByDeletingLastPathComponent;
                     NSLog(@"directory = %@", directory);
-                    if ([[[theDoc path] pathExtension] isEqualToString: @"sav"])
+                    if ([theDoc.path.pathExtension isEqualToString: @"sav"])
                         [[NSUserDefaults standardUserDefaults] setObject: pathString forKey: @"SaveDirectory"];
                     else
                         [[NSUserDefaults standardUserDefaults] setObject: pathString forKey: @"GameDirectory"];
 
-                    [self application: NSApp openFile: [theDoc path]];
+                    [self application: NSApp openFile: theDoc.path];
                 }
             }
         }];
@@ -158,7 +163,7 @@ NSDictionary *gFormatMap;
 {
     NSLog(@"appdel: openFile '%@'", path);
 
-    if ([[[path pathExtension] lowercaseString] isEqualToString: @"ifiction"])
+    if ([path.pathExtension.lowercaseString isEqualToString: @"ifiction"])
     {
         [libctl importMetadataFromFile: path];
     }
@@ -179,7 +184,7 @@ NSDictionary *gFormatMap;
 
 - (NSWindow *) preferencePanel
 {
-	return [prefctl window];
+	return prefctl.window;
 }
 
 -(void)addToRecents:(NSArray*)URLs
@@ -192,8 +197,11 @@ NSDictionary *gFormatMap;
     if (!theDocCont) {
         theDocCont = [NSDocumentController sharedDocumentController];
     }
+	
+	NSDocumentController *localDocCont = theDocCont;
+
     [URLs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-        [theDocCont noteNewRecentDocumentURL:obj];
+        [localDocCont noteNewRecentDocumentURL:obj];
     }];
 }
 
@@ -214,8 +222,8 @@ NSDictionary *gFormatMap;
 
 - (NSApplicationTerminateReply) applicationShouldTerminate: (NSApplication *)app
 {
-    NSArray *windows = [app windows];
-    NSInteger count = [windows count];
+    NSArray *windows = app.windows;
+    NSInteger count = windows.count;
     NSInteger alive = 0;
 
     NSLog(@"appdel: applicationShouldTerminate");
@@ -223,7 +231,7 @@ NSDictionary *gFormatMap;
     while (count--)
     {
         NSWindow *window = windows[count];
-        id glkctl = [window delegate];
+        id glkctl = window.delegate;
         if ([glkctl isKindOfClass: [GlkController class]] && [glkctl isAlive])
             alive ++;
     }
@@ -246,8 +254,8 @@ NSDictionary *gFormatMap;
 - (void) applicationWillTerminate: (NSNotification*)notification
 {
     [libctl saveLibrary:self];
-    if ([[NSFontPanel sharedFontPanel] isVisible])
-		[[NSFontPanel sharedFontPanel] orderOut:self];
+    if ([NSFontPanel.sharedFontPanel isVisible])
+		[NSFontPanel.sharedFontPanel orderOut:self];
 }
 
 @end

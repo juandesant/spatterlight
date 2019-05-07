@@ -5,9 +5,9 @@
 
 @interface MyAttachmentCell : NSTextAttachmentCell
 {
-	NSInteger align;
-	NSInteger pos;
-	NSAttributedString *attrstr;
+    NSInteger align;
+    NSInteger pos;
+    NSAttributedString *attrstr;
 }
 
 - (instancetype) initImageCell:(NSImage *)image andAlignment:(NSInteger)analignment andAttStr:(NSAttributedString *)anattrstr at:(NSInteger)apos;
@@ -19,7 +19,7 @@
 @interface MyTextView : NSTextView <NSTextFinderClient>
 {
     GlkTextBufferWindow * glkTextBuffer;
-    NSTextFinder* _textFinder; // define your own text finder
+    NSTextFinder* _textFinder;
 }
 
 - (instancetype) initWithFrame:(NSRect)rect textContainer:(NSTextContainer *)container textBuffer: (GlkTextBufferWindow *)textbuffer;
@@ -27,12 +27,15 @@
 - (void) scrollToBottom;
 - (void) performScroll;
 - (void) temporarilyHideCaret;
-- (BOOL) scrolledToBottom;
-- (void) resetTextFinder; // A method to reset the view's text finder when you change the text storage
+@property (readonly) BOOL scrolledToBottom;
+- (void) resetTextFinder; // Call after changing the text storage, or search will break.
 
 @property BOOL shouldDrawCaret;
 @property CGFloat bottomPadding;
-@property (readonly) NSTextFinder* textFinder;
+@property (weak, readonly) NSTextFinder* textFinder;
+
+@property BOOL shouldSpeak_10_7;
+@property NSRange rangeToSpeak_10_7;
 
 @end
 
@@ -44,7 +47,7 @@
 @interface MarginContainer : NSTextContainer
 {
     NSMutableArray *margins;
-	NSMutableArray *flowbreaks;
+    NSMutableArray *flowbreaks;
 }
 
 - (id) initWithContainerSize: (NSSize)size;
@@ -53,7 +56,7 @@
 - (void) drawRect: (NSRect)rect;
 - (void) invalidateLayout;
 - (void) unoverlap: (MarginImage *)image;
-- (BOOL) hasMarginImages;
+@property (readonly) BOOL hasMarginImages;
 - (NSMutableAttributedString *) marginsToAttachmentsInString: (NSMutableAttributedString *)string;
 - (NSUInteger) findHyperlinkAt: (NSPoint)p;
 
@@ -63,7 +66,7 @@
  * TextBuffer window controller
  */
 
-#define HISTORYLEN 50
+#define HISTORYLEN 100
 
 @interface GlkTextBufferWindow : GlkWindow <NSTextViewDelegate, NSTextStorageDelegate>
 {
@@ -73,23 +76,31 @@
     MarginContainer *container;
     MyTextView *textview;
 
-	NSInteger line_request;
-	NSInteger hyper_request;
+    NSInteger line_request;
+    NSInteger hyper_request;
 
     BOOL echo_toggle_pending; /* if YES, line echo behavior will be inverted, starting from the next line event*/
     BOOL echo; /* if YES, current line input will be deleted from text view */
 
-    NSInteger fence;		/* for input line editing */
+    NSInteger fence;        /* for input line editing */
 
     NSString *history[HISTORYLEN];
     NSInteger historypos;
     NSInteger historyfirst, historypresent;
+
+    NSMutableArray *moveRanges;
+    NSInteger moveRangeIndex;
 }
 
 - (void) recalcBackground;
 - (void) onKeyDown: (NSEvent*)evt;
 - (void) echo: (BOOL)val;
 - (BOOL) myMouseDown: (NSEvent*)theEvent;
+- (void) stopSpeakingText_10_7;
+- (IBAction) speakMostRecent: (id)sender;
+- (IBAction) speakPrevious: (id)sender;
+- (IBAction) speakNext: (id)sender;
+- (IBAction) speakStatus: (id)sender;
 
 @property (readonly) NSInteger lastchar; /* for smart formatting */
 @property (readonly) NSInteger lastseen; /* for more paging */

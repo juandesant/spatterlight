@@ -11,25 +11,25 @@
         glkctl = glkctl_;
         _name = name;
         bgnd = 0xFFFFFF; // White
-		_pendingTerminators = [[NSMutableDictionary alloc] initWithObjectsAndKeys:
-							   @(NO), @keycode_Func1,
-							   @(NO), @keycode_Func2,
-							   @(NO), @keycode_Func3,
-							   @(NO), @keycode_Func4,
-							   @(NO), @keycode_Func5,
-							   @(NO), @keycode_Func6,
-							   @(NO), @keycode_Func7,
-							   @(NO), @keycode_Func8,
-							   @(NO), @keycode_Func9,
-							   @(NO), @keycode_Func10,
-							   @(NO), @keycode_Func11,
-							   @(NO), @keycode_Func12,
-							   @(NO), @keycode_Escape,
-							   nil];
-		currentTerminators = _pendingTerminators;
-		_terminatorsPending = NO;
+        _pendingTerminators = [[NSMutableDictionary alloc] initWithObjectsAndKeys:
+                               @(NO), @keycode_Func1,
+                               @(NO), @keycode_Func2,
+                               @(NO), @keycode_Func3,
+                               @(NO), @keycode_Func4,
+                               @(NO), @keycode_Func5,
+                               @(NO), @keycode_Func6,
+                               @(NO), @keycode_Func7,
+                               @(NO), @keycode_Func8,
+                               @(NO), @keycode_Func9,
+                               @(NO), @keycode_Func10,
+                               @(NO), @keycode_Func11,
+                               @(NO), @keycode_Func12,
+                               @(NO), @keycode_Escape,
+                               nil];
+        currentTerminators = _pendingTerminators;
+        _terminatorsPending = NO;
     }
-    
+
     return self;
 }
 
@@ -39,7 +39,7 @@
     {
         styles[style] = 0;
     }
-    
+
     styles[style] = [[GlkStyle alloc] initWithStyle: style
                                          windowType: wintype
                                              enable: enable
@@ -65,36 +65,37 @@
 
 - (void) setFrame: (NSRect)thisframe
 {
-    NSRect mainframe = [[self superview] frame];
+    NSRect mainframe = self.superview.frame;
     NSInteger hmask, vmask;
     NSInteger rgt = 0;
     NSInteger bot = 0;
-    
-    [super setFrame: thisframe];
-    
+
     /* set autoresizing for live resize. */
     /* the client should rearrange after it's finished. */
     /* flex the views connected to the right and bottom */
     /* keep the other views fixed in size */
     /* x and y separable */
-    
-    if (NSMaxX(thisframe) == NSMaxX(mainframe))
+
+    CGFloat border = Preferences.border;
+
+    if (NSMaxX(thisframe) == floor(NSMaxX(mainframe) - border))
         rgt = 1;
-    
-    if (NSMaxY(thisframe) == NSMaxY(mainframe))
+
+    if (NSMaxY(thisframe) == floor(NSMaxY(mainframe) - border))
         bot = 1;
-    
+
     if (rgt)
         hmask = NSViewWidthSizable;
     else
         hmask = NSViewMaxXMargin;
-    
+
     if (bot)
         vmask = NSViewHeightSizable;
     else
         vmask = NSViewMaxYMargin;
-    
-    [self setAutoresizingMask: hmask | vmask];
+
+    self.autoresizingMask = hmask | vmask;
+    super.frame = thisframe;
 }
 
 - (void) prefsDidChange
@@ -115,8 +116,9 @@
 
 - (void) grabFocus
 {
-    // NSLog(@"grab focus in window %d", name);
-    [[self window] makeFirstResponder: self];
+    // NSLog(@"grab focus in window %ld", self.name);
+    [self.window makeFirstResponder: self];
+    NSAccessibilityPostNotification( self, NSAccessibilityFocusedUIElementChangedNotification );
 }
 
 - (void) flushDisplay
@@ -163,27 +165,27 @@
 
 - (NSDictionary *) attributesFromStylevalue: (NSInteger)stylevalue
 {
-	NSInteger style = stylevalue & 0xff;
-	NSInteger fg = (stylevalue >> 8) & 0xff;
-	NSInteger bg = (stylevalue >> 16) & 0xff;
+    NSInteger style = stylevalue & 0xff;
+    NSInteger fg = (stylevalue >> 8) & 0xff;
+    NSInteger bg = (stylevalue >> 16) & 0xff;
 
-	if (fg || bg)
-	{
-		NSMutableDictionary *mutatt = [styles[style].attributes mutableCopy];
-		mutatt[@"GlkStyle"] = [NSNumber numberWithInt:stylevalue];
-		if ([Preferences stylesEnabled])
-		{
-			if (fg)
-				mutatt[NSForegroundColorAttributeName] = [Preferences foregroundColor: (int)(fg - 1)];
-			if (bg)
+    if (fg || bg)
+    {
+        NSMutableDictionary *mutatt = [styles[style].attributes mutableCopy];
+        mutatt[@"GlkStyle"] = @(stylevalue);
+        if ([Preferences stylesEnabled])
+        {
+            if (fg)
+                mutatt[NSForegroundColorAttributeName] = [Preferences foregroundColor: (int)(fg - 1)];
+            if (bg)
                 mutatt[NSBackgroundColorAttributeName] = [Preferences backgroundColor: (int)(bg - 1)];
-		}
-		return (NSDictionary *) mutatt;
-	}
-	else
-	{
-		return styles[style].attributes;
-	}
+        }
+        return (NSDictionary *) mutatt;
+    }
+    else
+    {
+        return styles[style].attributes;
+    }
 }
 
 - (void) moveToColumn:(NSInteger)x row:(NSInteger)y
@@ -219,14 +221,14 @@
 {
 }
 
-- (void) setHyperlink: (NSInteger)linkid;
+- (void) setHyperlink: (NSUInteger)linkid;
 {
-	NSLog(@"hyperlink input in %@ not implemented", [self class]);
+    NSLog(@"hyperlink input in %@ not implemented", [self class]);
 }
 
 - (void) initHyperlink
 {
-	NSLog(@"hyperlink input in %@ not implemented", [self class]);
+    NSLog(@"hyperlink input in %@ not implemented", [self class]);
 }
 
 - (void) cancelHyperlink
@@ -234,9 +236,15 @@
     NSLog(@"hyperlink input in %@ not implemented", [self class]);
 }
 
-- (BOOL) hasLineReques
+- (BOOL) hasLineRequest
 {
     return NO;
+}
+
+#pragma mark Accessibility
+
+- (BOOL)accessibilityIsIgnored {
+	return NO;
 }
 
 @end
